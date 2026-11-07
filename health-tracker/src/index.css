@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-bg: #f6f3ee;
+  --color-card: #fffdfa;
+  --color-ink: #23211e;
+  --color-muted: #6b665f;
+  --color-line: #e6e0d6;
+  --color-soft: #efeae2;
+  --color-accent: #2f6b4f;
+  --color-accent-soft: #e3efe8;
+  --color-caution: #9a6412;
+  --color-caution-soft: #fbf0dc;
+  --color-urgent: #b42318;
+  --color-urgent-soft: #fdeceb;
+  --color-info: #2d5b86;
+  --color-info-soft: #e5eef7;
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 60%, white); outline-offset: 2px; border-radius: 10px; }
+input, select, textarea, button { font: inherit; }
+input[type="number"] { -moz-appearance: textfield; }
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+.pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+.tabular { font-variant-numeric: tabular-nums; }

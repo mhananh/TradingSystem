@@ -1,0 +1,105 @@
+# Builds Jejak Sehat (health-tracker/): lint, tests, web build, then a signed Android APK.
+# A signed APK is published as a GitHub Release ("Jejak Sehat vX") so it can be downloaded on the phone.
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   ANDROID_KEYSTORE_BASE64   – base64 of the release keystore (never commit the keystore: this repo is public)
+#   ANDROID_KEYSTORE_PASSWORD – keystore/key password (alias: jejaksehat)
+# Without these secrets the workflow still builds and uploads an unsigned-for-release DEBUG APK artifact.
+name: Jejak Sehat – Android APK
+
+on:
+  push:
+    paths:
+      - 'health-tracker/**'
+      - '.github/workflows/jejak-sehat-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jejak-sehat-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: health-tracker
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      APP_VERSION_CODE: ${{ github.run_number }}
+      APP_VERSION_NAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: health-tracker/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Web build
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Decode signing key
+        if: env.HAS_KEYSTORE == 'true'
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.keystore"
+
+      - name: Build signed release APK
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: health-tracker/android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/JejakSehat-${APP_VERSION_NAME}.apk"
+
+      - name: Build debug APK (no signing secrets configured)
+        if: env.HAS_KEYSTORE != 'true'
+        working-directory: health-tracker/android
+        run: |
+          echo "::warning::ANDROID_KEYSTORE_BASE64 not set – building a DEBUG APK. Do not install it over a release build."
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/JejakSehat-${APP_VERSION_NAME}-DEBUG.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JejakSehat-apk-${{ env.APP_VERSION_NAME }}
+          path: JejakSehat-*.apk
+
+      - name: Publish release
+        if: env.HAS_KEYSTORE == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: jejak-sehat-v${{ env.APP_VERSION_NAME }}
+          name: Jejak Sehat v${{ env.APP_VERSION_NAME }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: JejakSehat-*.apk
+          body: |
+            APK Android Jejak Sehat v${{ env.APP_VERSION_NAME }} (build otomatis dari `${{ github.ref_name }}`).
+            Cara pasang: buka halaman ini di HP Android → unduh file .apk → buka → izinkan "instal dari sumber ini" → Instal.
+            Update dipasang di atas versi lama; data tetap ada.

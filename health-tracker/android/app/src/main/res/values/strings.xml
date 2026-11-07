@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Jejak Sehat</string>
+    <string name="title_activity_main">Jejak Sehat</string>
+    <string name="package_name">id.jejaksehat.app</string>
+    <string name="custom_url_scheme">id.jejaksehat.app</string>
+</resources>
