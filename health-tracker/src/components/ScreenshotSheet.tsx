@@ -83,7 +83,7 @@ export function ScreenshotSheet({ open, onClose, day, onApply }: { open: boolean
       {res && !res.readable && <Note tone="info">Tidak ada data kesehatan yang terbaca. Coba screenshot lain.</Note>}
       {res && res.readable && (
         <div className="space-y-3">
-          <dl className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-white p-3 text-sm">
+          <dl className="grid grid-cols-2 gap-2 rounded-xl border border-line bg-field p-3 text-sm">
             <dt className="text-muted">Total tidur</dt>
             <dd className="tabular">{formatMinutes(res.sleep_total_minutes)}</dd>
             <dt className="text-muted">Tidur → bangun</dt>

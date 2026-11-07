@@ -1,222 +1,314 @@
-import { useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight, ArrowRight, Moon, Flame, Footprints, Dumbbell, Utensils, PenLine, Timer, HeartPulse } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ChevronRight, Sparkles, Check, Timer, Trophy, PlayCircle } from 'lucide-react';
 import type { UserProfile } from '../domain/types';
 import { useAllDays } from '../hooks/data';
-import { Badge, Card, Note, Progress, Stat, cx } from '../components/ui';
+import { useAchievements } from '../hooks/achievements';
+import { Card, Note, cx, useToast } from '../components/ui';
+import { AchievementBadge, ConsistencyCalendar, DeltaChip, MetricIcon, MetricTile, Rings, Sparkline, METRIC } from '../components/viz';
+import { WeeklyRecap, buildRecap } from '../components/WeeklyRecap';
 import { formatLong, formatMinutes, todayKey, addDays, timeOf, weekStart } from '../lib/date';
-import { fmt0, fmt1, greeting, signed1 } from '../lib/format';
-import { calculateFastingDuration, calculateGoalProgressPercent, calculateWeightChange, effectiveNutrition } from '../domain/calc';
-import { currentWeightEstimate, isRamadanDay, latestWeight, weeklyTrend } from '../domain/derive';
-import { summarizeWeek } from '../domain/insights';
+import { fmt0, fmt1, greeting } from '../lib/format';
+import { calculateFastingDuration, calculateGoalProgressPercent, calculateWeightChange, effectiveNutrition, calculateRollingAverage } from '../domain/calc';
+import { currentWeightEstimate, isRamadanDay, latestWeight, weeklyTrend, weightPoints } from '../domain/derive';
+import { buildFocus, consistencyGrid, focusDone, loggedDaysInLast } from '../domain/engagement';
 import { DROWSY_DRIVING, SLEEP_SAFETY_CARD } from '../copy/health';
-import { RESTEDNESS } from '../domain/defaults';
+import { getDay, saveDay, getMeta, setMeta } from '../db/db';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 export default function Beranda({ profile }: { profile: UserProfile }) {
   const days = useAllDays();
+  const toast = useToast();
   const today = todayKey();
+  const achievements = useAchievements(days, profile);
+  const [recapOpen, setRecapOpen] = useState(false);
+  const recapSeen = useLiveQuery(() => getMeta<string | null>('recapSeenWeek', null), []);
+  const lastWeekStart = addDays(weekStart(today), -7);
+
   const data = useMemo(() => {
     if (!days) return null;
-    const byDate = new Map(days.map((d) => [d.date, d]));
-    const t = byDate.get(today);
-    const yesterday = byDate.get(addDays(today, -1));
-    const sleepDay = t?.sleepDurationMinutes ? t : yesterday?.sleepDurationMinutes ? yesterday : undefined;
-    const lw = latestWeight(days);
-    const trend = weeklyTrend(days, today);
-    const ws = weekStart(today);
-    const thisWeek = summarizeWeek(days, ws, profile.proteinMinG);
-    const lastWeek = summarizeWeek(days, addDays(ws, -7), profile.proteinMinG);
+    const by = new Map(days.map((d) => [d.date, d]));
+    const t = by.get(today);
+    const sleepDay = t?.sleepDurationMinutes ? t : by.get(addDays(today, -1))?.sleepDurationMinutes ? by.get(addDays(today, -1)) : undefined;
+    const last14 = Array.from({ length: 14 }, (_, i) => addDays(today, i - 13));
+    const rolling = new Map(calculateRollingAverage(weightPoints(days)).map((r) => [r.date, r.average ?? r.value]));
     const recent = days.filter((d) => d.date >= addDays(today, -6));
-    const sleepyDays = recent.filter((d) => (d.sleepinessAfterLunch1to5 ?? 0) >= 4 || (d.sleepinessMorning1to5 ?? 0) >= 4).length;
-    const gerdDays = recent.filter((d) => d.gerdAny || d.gerdEpisodes.length).length;
-    const severeGerd = recent.some((d) => d.gerdEpisodes.some((e) => e.severity === 'severe'));
-    const fastSymptoms = recent.some((d) => (d.fastingSymptoms ?? []).length > 0);
-    const breathing = days.some((d) => (d.breathingObserved ?? []).length > 0);
-    return { t, sleepDay, lw, trend, thisWeek, lastWeek, sleepyDays, gerdDays, severeGerd, fastSymptoms, breathing, current: currentWeightEstimate(days, profile) };
+    return {
+      t,
+      sleepDay,
+      lw: latestWeight(days),
+      trend: weeklyTrend(days, today),
+      current: currentWeightEstimate(days, profile),
+      weightSpark: last14.map((d) => rolling.get(d) ?? null),
+      sleepSpark: last14.map((d) => (by.get(d)?.sleepDurationMinutes ? by.get(d)!.sleepDurationMinutes! / 60 : null)),
+      stepsSpark: last14.map((d) => by.get(d)?.steps ?? null),
+      sleepySpark: last14.map((d) => by.get(d)?.sleepinessAfterLunch1to5 ?? null),
+      grid: consistencyGrid(days, today, 12),
+      logged30: loggedDaysInLast(days, today, 30),
+      sleepyDays: recent.filter((d) => (d.sleepinessAfterLunch1to5 ?? 0) >= 4 || (d.sleepinessMorning1to5 ?? 0) >= 4).length,
+      severeGerd: recent.some((d) => d.gerdEpisodes.some((e) => e.severity === 'severe')),
+      fastSymptoms: recent.some((d) => (d.fastingSymptoms ?? []).length > 0),
+      breathing: days.some((d) => (d.breathingObserved ?? []).length > 0),
+      focus: buildFocus({ today, now: new Date(), day: t, days, profile }),
+      recap: buildRecap(days, profile, today, null),
+    };
   }, [days, today, profile]);
 
   if (!data) return <p className="text-muted">Memuat…</p>;
-  const { t, sleepDay, lw, trend, thisWeek, lastWeek } = data;
+  const { t, sleepDay, lw, trend } = data;
   const nut = effectiveNutrition(t);
   const change = lw ? calculateWeightChange(profile.startingWeightKg, lw.value) : null;
   const prog = calculateGoalProgressPercent(profile.startingWeightKg, data.current, profile.goalWeightKg);
-  const progLong = profile.secondaryGoalWeightKg ? calculateGoalProgressPercent(profile.startingWeightKg, data.current, profile.secondaryGoalWeightKg) : null;
   const ramadan = isRamadanDay(profile, today);
   const fastMin = calculateFastingDuration(t?.fastingStartAt, t?.fastingEndAt);
-  const TrendIcon = trend.dir === 'down' ? ArrowDownRight : trend.dir === 'up' ? ArrowUpRight : ArrowRight;
+  const sleepGoalMin = profile.sleepTargetHours * 60;
+  const rings = [
+    { metric: 'kcal' as const, value: nut?.caloriesKcal ?? 0, goal: profile.calorieTargetKcal },
+    { metric: 'protein' as const, value: nut?.proteinG ?? 0, goal: profile.proteinTargetG },
+    { metric: 'steps' as const, value: t?.steps ?? 0, goal: profile.stepGoal },
+    { metric: 'sleep' as const, value: sleepDay?.sleepDurationMinutes ?? 0, goal: sleepGoalMin },
+  ];
+  const doneCount = data.focus.filter((f) => focusDone(f, t)).length;
+  const earned = (achievements ?? []).filter((a) => a.earnedAt).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? ''));
+  const nextUp = (achievements ?? []).filter((a) => !a.earnedAt).sort((a, b) => b.progress - a.progress)[0];
+  const showRecap = data.recap.loggedDays > 0 && lastWeekStart >= profile.startingWeightDate.slice(0, 10);
+  const recapNew = showRecap && recapSeen !== lastWeekStart;
 
-  // One compact, context-aware health reminder (priority order).
+  async function toggleFocus(id: string) {
+    const d = await getDay(today);
+    const cur = d.focusDone ?? [];
+    const on = !cur.includes(id);
+    await saveDay({ ...d, focusDone: on ? [...cur, id] : cur.filter((x) => x !== id) });
+    if (on) toast('Bagus! Satu langkah kecil selesai ✨');
+  }
+
   let reminder: { tone: 'caution' | 'info'; title: string; body: string } | null = null;
-  if (data.severeGerd) reminder = { tone: 'caution', title: 'GERD berat tercatat minggu ini', body: 'Bila gejala sering, memburuk, atau mengganggu, konsultasikan dengan dokter. Lihat tanda bahaya di halaman Kesehatan.' };
-  else if (data.fastSymptoms) reminder = { tone: 'caution', title: 'Ada gejala saat puasa', body: 'Gejala lebih penting dari target puasa. Kamu bisa menjeda IF dan makan teratur kapan saja.' };
-  else if (data.breathing) reminder = { tone: 'caution', title: 'Jeda napas/tersedak saat tidur dilaporkan', body: 'Ini alasan baik untuk evaluasi tidur dengan tenaga kesehatan.' };
+  if (data.severeGerd) reminder = { tone: 'caution', title: 'GERD berat tercatat minggu ini', body: 'Bila sering, memburuk, atau mengganggu, konsultasikan dengan dokter. Lihat tanda bahaya di Kesehatan.' };
+  else if (data.fastSymptoms) reminder = { tone: 'caution', title: 'Ada gejala saat puasa', body: 'Gejala lebih penting dari target puasa. Kamu bisa menjeda IF kapan saja.' };
+  else if (data.breathing) reminder = { tone: 'caution', title: 'Jeda napas/tersedak saat tidur dilaporkan', body: 'Alasan baik untuk evaluasi tidur dengan tenaga kesehatan.' };
   else if (data.sleepyDays >= 3) reminder = { tone: 'info', title: 'Sering mengantuk minggu ini', body: `${SLEEP_SAFETY_CARD} ${DROWSY_DRIVING}` };
-  else if (data.gerdDays >= 3) reminder = { tone: 'info', title: `GERD muncul ${data.gerdDays} hari minggu ini`, body: 'Catat pemicu yang mungkin terlibat; pola baru bisa disimpulkan setelah beberapa kejadian.' };
 
   return (
     <div className="space-y-4">
-      <header>
-        <p className="text-sm text-muted">{formatLong(today)}</p>
-        <h1 className="text-2xl font-semibold">{greeting()} 👋</h1>
+      <header className="flex items-end justify-between">
+        <div>
+          <p className="text-sm text-muted">{formatLong(today)}</p>
+          <h1 className="text-[26px] font-bold tracking-tight">
+            {greeting()}
+            {profile.displayName ? `, ${profile.displayName}` : ''}
+          </h1>
+        </div>
+        <a href="#/progres" className="flex items-center gap-1 rounded-full border border-line bg-card px-3 py-1.5 text-xs text-muted">
+          {data.logged30}/30 hari tercatat
+        </a>
       </header>
 
-      <a href={`#/catat/${today}`} className="flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-base font-semibold text-white shadow-sm active:bg-[#255a41]">
-        <PenLine className="h-5 w-5" aria-hidden /> Catat hari ini
+      {/* Hero: today's rings */}
+      <section className="rise relative overflow-hidden rounded-[28px] border border-line bg-gradient-to-br from-[#14251f] via-card to-[#161a33] p-4">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/10 blur-3xl" />
+        <div className="flex items-center gap-4">
+          <Rings
+            rings={rings}
+            size={136}
+            stroke={10}
+            center={
+              <>
+                <span className="text-xl font-bold leading-none tabular">{fmt0(nut?.caloriesKcal ?? 0)}</span>
+                <span className="mt-0.5 text-[10px] text-muted">kkal</span>
+              </>
+            }
+          />
+          <ul className="grid min-w-0 flex-1 grid-cols-1 gap-2">
+            {[
+              { m: 'kcal' as const, v: `${fmt0(nut?.caloriesKcal ?? 0)}`, g: `/${fmt0(profile.calorieTargetKcal)} kkal` },
+              { m: 'protein' as const, v: `${fmt0(nut?.proteinG ?? 0)}`, g: `/${profile.proteinTargetG} g` },
+              { m: 'steps' as const, v: t?.steps != null ? fmt0(t.steps) : '0', g: `/${fmt0(profile.stepGoal)}` },
+              { m: 'sleep' as const, v: sleepDay?.sleepDurationMinutes ? formatMinutes(sleepDay.sleepDurationMinutes) : '–', g: `/${profile.sleepTargetHours} j` },
+            ].map((r) => (
+              <li key={r.m} className="min-w-0">
+                <span className="flex items-center gap-1.5 text-[11px] text-muted">
+                  <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: METRIC[r.m].color }} />
+                  {METRIC[r.m].label}
+                </span>
+                <span className="block truncate text-[15px] font-semibold leading-tight tabular">
+                  {r.v}
+                  <span className="ml-0.5 text-[11px] font-normal text-muted">{r.g}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        {!t && <p className="mt-3 text-center text-xs text-muted">Belum ada catatan hari ini — tekan <b className="text-accent">+</b> untuk mulai, cukup 1 ketukan.</p>}
+      </section>
+
+      {/* Weekly recap entry */}
+      {showRecap && (
+        <button
+          type="button"
+          onClick={() => {
+            setRecapOpen(true);
+            void setMeta('recapSeenWeek', lastWeekStart);
+          }}
+          className="rise flex w-full items-center gap-3 rounded-3xl border border-accent/30 bg-gradient-to-r from-accent-soft to-card p-3.5 text-left"
+        >
+          <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-on-accent">
+            <PlayCircle className="h-6 w-6" />
+            {recapNew && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-m-kcal ring-2 ring-card" />}
+          </span>
+          <span className="flex-1">
+            <span className="block font-semibold">Rekap Minggu ke-{data.recap.weekNumber}</span>
+            <span className="block text-xs text-muted">{data.recap.loggedDays}/7 hari tercatat · ketuk untuk melihat</span>
+          </span>
+          <ChevronRight className="h-5 w-5 text-muted" />
+        </button>
+      )}
+
+      {/* Fokus hari ini */}
+      <Card
+        title={
+          <span className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" /> Fokus hari ini
+          </span>
+        }
+        action={<span className="rounded-full bg-soft px-2.5 py-1 text-xs font-semibold tabular text-muted">{doneCount}/{data.focus.length}</span>}
+      >
+        {data.focus.length === 0 ? (
+          <p className="text-sm text-muted">Semua beres untuk saat ini. Nikmati harimu 🌿</p>
+        ) : (
+          <ul className="space-y-2">
+            {data.focus.map((f) => {
+              const done = focusDone(f, t);
+              return (
+                <li key={f.id}>
+                  <button
+                    type="button"
+                    aria-pressed={done}
+                    disabled={f.autoDone}
+                    onClick={() => void toggleFocus(f.id)}
+                    className={cx('flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors', done ? 'border-accent/30 bg-accent-soft/50' : 'border-line bg-field active:bg-elev')}
+                  >
+                    <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2', done ? 'pop border-accent bg-accent text-on-accent' : 'border-line')}>
+                      {done && <Check className="h-4 w-4" strokeWidth={3} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cx('block text-[15px] font-medium', done && 'text-muted line-through decoration-accent/60')}>{f.title}</span>
+                      <span className="block text-xs text-muted">{f.detail}</span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      {/* Weight hero */}
+      <a href="#/progres" className="rise block rounded-3xl border border-line bg-card p-4 active:bg-elev">
+        <div className="flex items-center gap-2">
+          <MetricIcon metric="weight" size="sm" />
+          <span className="text-xs font-medium text-muted">Berat · rata-rata 7 hari</span>
+          <ChevronRight className="ml-auto h-4 w-4 text-muted" />
+        </div>
+        <div className="mt-2 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[40px] font-bold leading-none tracking-tight tabular">
+              {trend.thisAvg != null ? fmt1(trend.thisAvg) : lw ? fmt1(lw.value) : '–'}
+              <span className="ml-1 text-base font-medium text-muted">kg</span>
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <DeltaChip value={trend.delta} unit="kg/mgg" />
+              <DeltaChip value={change} unit="kg dari awal" />
+            </div>
+          </div>
+          <Sparkline values={data.weightSpark} color="var(--color-m-weight)" width={120} height={56} />
+        </div>
+        {prog && (
+          <div className="mt-4">
+            <div className="mb-1.5 flex justify-between text-xs">
+              <span className="text-muted">
+                {fmt1(profile.startingWeightKg)} → <b className="text-ink">{fmt0(profile.goalWeightKg)} kg</b>
+                {profile.secondaryGoalWeightKg ? <span className="text-muted"> · lalu {fmt0(profile.secondaryGoalWeightKg)}</span> : null}
+              </span>
+              <span className="font-semibold tabular text-accent">{prog.percent}%</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-soft">
+              <div className="h-full rounded-full bg-gradient-to-r from-m-steps to-accent" style={{ width: `${Math.max(2, prog.percent)}%` }} />
+            </div>
+          </div>
+        )}
       </a>
 
-      <Card title="Berat badan" action={<a className="text-sm text-accent" href="#/progres">Grafik</a>}>
-        {lw ? (
-          <div className="grid grid-cols-2 gap-4">
-            <Stat label={`Terakhir (${lw.date === today ? 'hari ini' : lw.date})`} value={fmt1(lw.value)} unit="kg" sub={change != null ? `${signed1(change)} kg dari awal` : undefined} />
-            <div>
-              <p className="text-xs text-muted">Rata-rata 7 hari</p>
-              <p className="flex items-center gap-1 text-xl font-semibold tabular">
-                {trend.thisAvg != null ? fmt1(trend.thisAvg) : '–'}
-                {trend.thisAvg != null && <span className="text-sm font-normal text-muted">kg</span>}
-                {trend.dir !== 'unknown' && <TrendIcon className={cx('h-5 w-5', trend.dir === 'down' ? 'text-accent' : 'text-muted')} aria-label={`tren ${trend.dir === 'down' ? 'turun' : trend.dir === 'up' ? 'naik' : 'datar'}`} />}
-              </p>
-              <p className="text-xs text-muted">{trend.delta != null ? `${signed1(trend.delta)} kg vs minggu lalu` : 'Butuh ≥2 timbangan per minggu'}</p>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-muted">Belum ada penimbangan. Timbang pagi hari setelah ke toilet untuk angka yang konsisten.</p>
-        )}
-        {prog && (
-          <div className="mt-4 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span>Menuju {fmt0(profile.goalWeightKg)} kg</span>
-              <span className="tabular text-muted">{prog.percent}%</span>
-            </div>
-            <Progress value={prog.percent} max={100} label={`Progres menuju ${profile.goalWeightKg} kg`} />
-            {prog.movedAway && <p className="text-xs text-muted">Tren saat ini sedikit di atas berat awal — fluktuasi itu normal.</p>}
-          </div>
-        )}
-        {progLong && (
-          <details className="mt-3 text-sm">
-            <summary className="min-h-11 cursor-pointer text-accent">Target jangka panjang</summary>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span>Menuju {fmt0(profile.secondaryGoalWeightKg)} kg</span>
-                <span className="tabular text-muted">{progLong.percent}%</span>
-              </div>
-              <Progress value={progLong.percent} max={100} label={`Progres menuju ${profile.secondaryGoalWeightKg} kg`} tone="neutral" />
-            </div>
-          </details>
-        )}
-      </Card>
-
-      <Card title={<span className="flex items-center gap-2"><Utensils className="h-4 w-4 text-accent" /> Makan hari ini</span>}>
-        {nut ? (
-          <div className="space-y-3">
-            <div>
-              <div className="mb-1 flex justify-between text-sm">
-                <span>Kalori</span>
-                <span className="tabular text-muted">
-                  {fmt0(nut.caloriesKcal)} / {fmt0(profile.calorieTargetKcal)} kkal
-                </span>
-              </div>
-              <Progress value={nut.caloriesKcal} max={profile.calorieTargetKcal} label="Kalori hari ini" />
-            </div>
-            <div>
-              <div className="mb-1 flex justify-between text-sm">
-                <span>Protein</span>
-                <span className="tabular text-muted">
-                  {fmt0(nut.proteinG)} / {fmt0(profile.proteinTargetG)} g
-                </span>
-              </div>
-              <Progress value={nut.proteinG} max={profile.proteinTargetG} label="Protein hari ini" />
-            </div>
-            {!t?.nutritionComplete && <p className="text-xs text-muted">Belum ditandai lengkap — angka bisa bertambah.</p>}
-          </div>
-        ) : (
-          <p className="text-sm text-muted">Belum ada catatan makan hari ini. Cukup total kkal & protein, atau foto makananmu.</p>
-        )}
-      </Card>
-
+      {/* Metric tiles */}
       <div className="grid grid-cols-2 gap-3">
-        <Card as="div" className="!p-3">
-          <p className="flex items-center gap-1.5 text-xs text-muted"><Moon className="h-3.5 w-3.5" /> Tidur terakhir</p>
-          <p className="mt-1 text-lg font-semibold tabular">{formatMinutes(sleepDay?.sleepDurationMinutes)}</p>
-          <p className="text-xs text-muted">
-            {sleepDay?.sleepQuality1to5 ? `Kualitas ${sleepDay.sleepQuality1to5}/5` : sleepDay ? 'Kualitas belum diisi' : 'Belum dicatat'}
-            {sleepDay?.morningRestedness ? ` · ${RESTEDNESS.find((r) => r.id === sleepDay.morningRestedness)?.label}` : ''}
-          </p>
-        </Card>
-        <Card as="div" className="!p-3">
-          <p className="flex items-center gap-1.5 text-xs text-muted"><HeartPulse className="h-3.5 w-3.5" /> Kantuk & GERD</p>
-          <p className="mt-1 text-lg font-semibold tabular">{t?.sleepinessAfterLunch1to5 ? `${t.sleepinessAfterLunch1to5}/5` : '–'}</p>
-          <p className="text-xs text-muted">
-            kantuk siang · GERD: {t?.gerdEpisodes.length ? `${t.gerdEpisodes.length} episode` : t?.gerdAny === false ? 'tidak ada' : t?.gerdAny ? 'ada' : 'belum diisi'}
-          </p>
-        </Card>
-        <Card as="div" className="!p-3">
-          <p className="flex items-center gap-1.5 text-xs text-muted"><Footprints className="h-3.5 w-3.5" /> Aktivitas</p>
-          <p className="mt-1 text-lg font-semibold tabular">{t?.steps != null ? fmt0(t.steps) : '–'}</p>
-          <p className="text-xs text-muted">
-            langkah{t?.walkingMinutes ? ` · jalan ${t.walkingMinutes} mnt` : ''}
-            {t?.stepsSource === 'healthconnect' && ' · dari jam'}
-          </p>
-        </Card>
-        <Card as="div" className="!p-3">
-          <p className="flex items-center gap-1.5 text-xs text-muted"><Dumbbell className="h-3.5 w-3.5" /> Latihan kekuatan</p>
-          <p className="mt-1 text-lg font-semibold tabular">{thisWeek.strengthSessions}×</p>
-          <p className="text-xs text-muted">minggu ini{t?.strengthWorkout ? ' · hari ini ✓' : ''}</p>
-        </Card>
+        <MetricTile
+          metric="sleep"
+          label="Tidur semalam"
+          value={sleepDay?.sleepDurationMinutes ? `${Math.floor(sleepDay.sleepDurationMinutes / 60)}j${String(sleepDay.sleepDurationMinutes % 60).padStart(2, '0')}` : '–'}
+          spark={data.sleepSpark}
+          progress={sleepDay?.sleepDurationMinutes ? sleepDay.sleepDurationMinutes / sleepGoalMin : 0}
+          sub={sleepDay?.sleepQuality1to5 ? `Kualitas ${sleepDay.sleepQuality1to5}/5` : 'Target ' + profile.sleepTargetHours + ' jam'}
+          href="#/kesehatan/tidur"
+        />
+        <MetricTile metric="energy" label="Kantuk siang" value={t?.sleepinessAfterLunch1to5 ?? '–'} unit="/5" spark={data.sleepySpark} sub="lebih rendah = lebih segar" href="#/progres" />
+        <MetricTile metric="steps" value={t?.steps != null ? fmt0(t.steps) : '–'} spark={data.stepsSpark} progress={(t?.steps ?? 0) / profile.stepGoal} sub={t?.walkingMinutes ? `Jalan ${t.walkingMinutes} mnt` : `Target ${fmt0(profile.stepGoal)}`} />
+        <MetricTile
+          metric="gerd"
+          value={t?.gerdEpisodes.length ? t.gerdEpisodes.length : t?.gerdAny === false ? '0' : '–'}
+          unit={t?.gerdEpisodes.length || t?.gerdAny === false ? 'episode' : undefined}
+          sub={t?.gerdAny === false ? 'Hari yang tenang' : t?.gerdEpisodes.length ? 'Tercatat hari ini' : 'Belum diisi'}
+          href="#/kesehatan/gerd"
+        />
       </div>
 
       {(profile.fastingEnabled || ramadan) && (
-        <Card as="div" className="!p-3">
-          <p className="flex items-center gap-1.5 text-xs text-muted"><Timer className="h-3.5 w-3.5" /> {ramadan ? 'Puasa Ramadan' : 'Puasa intermiten (uji coba)'}</p>
-          <p className="mt-1 text-[15px]">
-            {fastMin != null
-              ? `Puasa tercatat: ${formatMinutes(fastMin)} (selesai ${timeOf(t!.fastingEndAt!)})`
-              : ramadan
-                ? 'Catat jam sahur & berbuka di halaman Catat.'
-                : `Jendela makan ${profile.eatingWindowStart}–${profile.eatingWindowEnd}. Belum ada puasa tercatat hari ini.`}
-          </p>
-        </Card>
+        <div className="flex items-center gap-3 rounded-3xl border border-line bg-card p-3.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-info-soft text-info">
+            <Timer className="h-4 w-4" />
+          </span>
+          <div className="flex-1 text-sm">
+            <p className="font-medium">{ramadan ? 'Puasa Ramadan' : 'Puasa intermiten · uji coba'}</p>
+            <p className="text-xs text-muted">
+              {fastMin != null ? `Tercatat ${formatMinutes(fastMin)} (selesai ${timeOf(t!.fastingEndAt!)})` : ramadan ? 'Catat sahur & berbuka di Catat.' : `Jendela makan ${profile.eatingWindowStart}–${profile.eatingWindowEnd}`}
+            </p>
+          </div>
+        </div>
       )}
       {!profile.fastingEnabled && !ramadan && <p className="px-1 text-xs text-muted">IF tidak aktif · jadwal makan biasa</p>}
-
-      <Card title={<span className="flex items-center gap-2"><Flame className="h-4 w-4 text-accent" /> Minggu ini vs minggu lalu</span>}>
-        <table className="w-full text-sm">
-          <caption className="sr-only">Ringkasan mingguan</caption>
-          <thead>
-            <tr className="text-left text-xs text-muted">
-              <th className="py-1 font-normal">Metrik</th>
-              <th className="py-1 text-right font-normal">Minggu ini</th>
-              <th className="py-1 text-right font-normal">Lalu</th>
-            </tr>
-          </thead>
-          <tbody className="tabular">
-            <Row label="Rata-rata berat" a={thisWeek.avgWeight != null ? `${fmt1(thisWeek.avgWeight)} kg` : '–'} b={lastWeek.avgWeight != null ? `${fmt1(lastWeek.avgWeight)} kg` : '–'} />
-            <Row label="Kalori (hari lengkap)" a={thisWeek.avgKcal != null ? `${fmt0(thisWeek.avgKcal)}` : '–'} b={lastWeek.avgKcal != null ? `${fmt0(lastWeek.avgKcal)}` : '–'} />
-            <Row label="Protein cukup" a={`${thisWeek.proteinMetDays}/${thisWeek.completeNutritionDays} hr`} b={`${lastWeek.proteinMetDays}/${lastWeek.completeNutritionDays} hr`} />
-            <Row label="Rata-rata tidur" a={formatMinutes(thisWeek.avgSleepMin)} b={formatMinutes(lastWeek.avgSleepMin)} />
-            <Row label="Kantuk siang" a={thisWeek.avgSleepinessAfterLunch != null ? `${fmt1(thisWeek.avgSleepinessAfterLunch)}/5` : '–'} b={lastWeek.avgSleepinessAfterLunch != null ? `${fmt1(lastWeek.avgSleepinessAfterLunch)}/5` : '–'} />
-            <Row label="Hari dengan GERD" a={`${thisWeek.gerdDays}/${thisWeek.gerdLoggedDays}`} b={`${lastWeek.gerdDays}/${lastWeek.gerdLoggedDays}`} />
-            <Row label="Menit jalan" a={fmt0(thisWeek.walkingMin)} b={fmt0(lastWeek.walkingMin)} />
-            <Row label="Sesi kekuatan" a={`${thisWeek.strengthSessions}`} b={`${lastWeek.strengthSessions}`} />
-          </tbody>
-        </table>
-        <p className="mt-2 text-xs text-muted">"–" berarti belum ada data, bukan nol. Minggu dimulai Senin.</p>
-      </Card>
 
       {reminder && (
         <Note tone={reminder.tone} title={reminder.title}>
           {reminder.body}
         </Note>
       )}
-      {!t && <p className="px-1 text-center text-sm text-muted"><Badge>Hari ini belum dicatat</Badge> Tidak harus lengkap — isi yang kamu tahu saja.</p>}
-    </div>
-  );
-}
 
-function Row({ label, a, b }: { label: string; a: string; b: string }) {
-  return (
-    <tr className="border-t border-line">
-      <th scope="row" className="py-2 text-left font-normal">{label}</th>
-      <td className="py-2 text-right font-medium">{a}</td>
-      <td className="py-2 text-right text-muted">{b}</td>
-    </tr>
+      {/* Consistency calendar */}
+      <Card title="Kalender konsistensi" action={<span className="text-xs text-muted">12 minggu</span>}>
+        <ConsistencyCalendar grid={data.grid} />
+        <p className="mt-2 text-xs text-muted">Tidak ada "streak" yang putus. Setiap hari tercatat tetap terhitung.</p>
+      </Card>
+
+      {/* Achievements */}
+      {achievements && (
+        <Card
+          title={
+            <span className="flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-m-energy" /> Pencapaian
+            </span>
+          }
+          action={<span className="text-xs text-muted">{earned.length}/{achievements.length}</span>}
+        >
+          <div className="space-y-2">
+            {earned.slice(0, 2).map((s) => (
+              <AchievementBadge key={s.a.id} s={s} />
+            ))}
+            {nextUp && <AchievementBadge s={nextUp} />}
+          </div>
+          <a href="#/kesehatan/pencapaian" className="mt-3 flex min-h-11 items-center justify-center gap-1 text-sm font-medium text-accent">
+            Lihat semua <ChevronRight className="h-4 w-4" />
+          </a>
+        </Card>
+      )}
+
+      {recapOpen && <WeeklyRecap data={buildRecap(days!, profile, today, achievements)} onClose={() => setRecapOpen(false)} />}
+    </div>
   );
 }

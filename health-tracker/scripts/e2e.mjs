@@ -42,13 +42,13 @@ try {
   await page.getByRole('button', { name: 'Lanjut' }).click();
   await page.getByRole('button', { name: 'Lanjut' }).click();
   await page.getByRole('button', { name: 'Mulai' }).click();
-  await page.getByRole('link', { name: 'Catat hari ini' }).waitFor();
+  await page.getByRole('button', { name: 'Catat cepat' }).waitFor();
   await page.screenshot({ path: `${OUT}/03-beranda-kosong.png`, fullPage: true });
   await noHScroll('beranda');
   check('start weight logged as first weigh-in', await page.getByText('90 kg').count() + (await page.getByText(/90\b/).count()) > 0);
 
   // Daily log
-  await page.getByRole('link', { name: 'Catat hari ini' }).click();
+  await page.goto(`${BASE}#/catat`);
   await page.getByText('Berat & pinggang').waitFor();
   if (!(await page.getByLabel('Berat', { exact: true }).isVisible())) await page.getByText('Berat & pinggang').click();
   await page.getByLabel('Berat', { exact: true }).fill('89,6');

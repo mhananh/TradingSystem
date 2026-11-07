@@ -45,7 +45,7 @@ if (process.argv.includes('--android')) {
     const h = buf.readUInt32BE(20);
     const s = Math.round(Math.min(w, h) * 0.28);
     await pg.setViewportSize({ width: w, height: h });
-    await pg.setContent(`<html><body style="margin:0;width:${w}px;height:${h}px;background:#f6f3ee;display:flex;align-items:center;justify-content:center">${icon.replace('<svg ', `<svg width="${s}" height="${s}" `)}</body></html>`);
+    await pg.setContent(`<html><body style="margin:0;width:${w}px;height:${h}px;background:#0a1017;display:flex;align-items:center;justify-content:center">${icon.replace('<svg ', `<svg width="${s}" height="${s}" `)}</body></html>`);
     writeFileSync(f, await pg.screenshot({ clip: { x: 0, y: 0, width: w, height: h } }));
     console.log('wrote', f, w, h);
   }

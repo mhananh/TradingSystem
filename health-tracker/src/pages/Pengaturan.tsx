@@ -357,7 +357,7 @@ function RemindersCard() {
 
 function ReminderRow({ label, v, onChange }: { label: string; v: { on: boolean; time: string }; onChange: (v: { on: boolean; time: string }) => void }) {
   return (
-    <div className="space-y-2 rounded-xl border border-line bg-white p-3">
+    <div className="space-y-2 rounded-xl border border-line bg-field p-3">
       <Toggle label={label} checked={v.on} onChange={(on) => onChange({ ...v, on })} />
       {v.on && <TimeField label="Jam" value={v.time} onChange={(t) => t && onChange({ ...v, time: t })} />}
     </div>

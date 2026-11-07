@@ -12,6 +12,7 @@ import Kesehatan from './pages/Kesehatan';
 import Pengaturan from './pages/Pengaturan';
 import { getMeta } from './db/db';
 import { syncFromHealthConnect } from './integrations/healthConnect';
+import { QuickLog } from './components/QuickLog';
 
 export type Tab = 'beranda' | 'catat' | 'progres' | 'kesehatan' | 'pengaturan';
 
@@ -76,18 +77,19 @@ export default function App() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
       {!online && (
-        <div className="pt-safe sticky top-0 z-40 flex items-center justify-center gap-2 bg-soft py-1.5 text-xs text-muted" role="status">
+        <div className="pt-safe sticky top-0 z-40 flex items-center justify-center gap-2 bg-caution-soft py-1.5 text-xs text-caution" role="status">
           <WifiOff className="h-3.5 w-3.5" aria-hidden /> Offline — pencatatan tetap berjalan, fitur AI butuh internet.
         </div>
       )}
-      <main className="pt-safe flex-1 px-4 pb-28 pt-4">
+      <main className="pt-safe flex-1 px-4 pb-32 pt-4">
         {route.tab === 'beranda' && <Beranda profile={profile} />}
         {route.tab === 'catat' && <Catat profile={profile} date={route.date ?? todayKey()} />}
         {route.tab === 'progres' && <Progres profile={profile} />}
         {route.tab === 'kesehatan' && <Kesehatan profile={profile} sub={route.sub} />}
         {route.tab === 'pengaturan' && <Pengaturan profile={profile} sub={route.sub} />}
       </main>
-      <nav aria-label="Navigasi utama" className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 backdrop-blur">
+      {route.tab !== 'pengaturan' && <QuickLog profile={profile} />}
+      <nav aria-label="Navigasi utama" className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/85 backdrop-blur-xl">
         <ul className="mx-auto grid max-w-lg grid-cols-5">
           {NAV.map(({ tab, label, Icon }) => {
             const active = route.tab === tab;
@@ -96,9 +98,11 @@ export default function App() {
                 <a
                   href={`#/${tab}`}
                   aria-current={active ? 'page' : undefined}
-                  className={cx('flex min-h-16 flex-col items-center justify-center gap-0.5 text-[11px]', active ? 'font-semibold text-accent' : 'text-muted')}
+                  className={cx('flex min-h-16 flex-col items-center justify-center gap-1 text-[11px]', active ? 'font-semibold text-accent' : 'text-muted')}
                 >
-                  <Icon className="h-6 w-6" aria-hidden strokeWidth={active ? 2.4 : 1.8} />
+                  <span className={cx('flex h-8 w-14 items-center justify-center rounded-full transition-colors', active && 'bg-accent-soft')}>
+                    <Icon className="h-5 w-5" aria-hidden strokeWidth={active ? 2.4 : 1.8} />
+                  </span>
                   {label}
                 </a>
               </li>

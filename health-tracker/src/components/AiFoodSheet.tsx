@@ -195,7 +195,7 @@ export function AiFoodSheet({ open, onClose, profile, onAdd, initialMode = 'phot
             </div>
           )}
           {result.items.map((it, i) => (
-            <div key={i} className="space-y-2 rounded-xl border border-line bg-white p-3">
+            <div key={i} className="space-y-2 rounded-xl border border-line bg-field p-3">
               <TextField label="Nama" value={it.name} onChange={(v) => editItem(i, { name: v })} />
               <p className="text-xs text-muted">
                 {it.portion} · rentang {fmt0(it.kcal_min)}–{fmt0(it.kcal_max)} kkal
@@ -232,7 +232,7 @@ export function AiFoodSheet({ open, onClose, profile, onAdd, initialMode = 'phot
       {label && !label.readable && <Note tone="info">Label tidak terbaca. Coba foto lebih dekat dan terang, atau isi manual.</Note>}
       {label && label.readable && (
         <div className="space-y-3">
-          <div className="rounded-xl border border-line bg-white p-3 text-sm">
+          <div className="rounded-xl border border-line bg-field p-3 text-sm">
             <p className="font-medium">{label.product_name ?? 'Produk'}</p>
             <p className="text-muted">Per sajian ({label.serving_description ?? '–'}): {fmt0(label.per_serving_kcal)} kkal · P {fmt1(label.per_serving_protein_g)} g · K {fmt1(label.per_serving_carbs_g)} g · L {fmt1(label.per_serving_fat_g)} g</p>
             {label.servings_per_package && <p className="text-muted">{fmt1(label.servings_per_package)} sajian per kemasan</p>}

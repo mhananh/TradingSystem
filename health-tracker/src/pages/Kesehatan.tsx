@@ -15,12 +15,15 @@ import { summarizeWeek } from '../domain/insights';
 import { shareText } from '../lib/platform';
 import { addToCalendar } from '../integrations/calendar';
 import { go } from '../App';
+import { useAchievements } from '../hooks/achievements';
+import { AchievementBadge } from '../components/viz';
 
-type Sub = 'tidur' | 'gerd' | 'latihan' | 'lab' | 'dokter' | 'edukasi';
+type Sub = 'tidur' | 'gerd' | 'latihan' | 'pencapaian' | 'lab' | 'dokter' | 'edukasi';
 const SUBS: { id: Sub; label: string }[] = [
   { id: 'tidur', label: 'Tidur' },
   { id: 'gerd', label: 'GERD' },
   { id: 'latihan', label: 'Latihan' },
+  { id: 'pencapaian', label: 'Pencapaian' },
   { id: 'lab', label: 'Lab' },
   { id: 'dokter', label: 'Tanya dokter' },
   { id: 'edukasi', label: 'Edukasi' },
@@ -48,12 +51,42 @@ export default function Kesehatan({ profile, sub }: { profile: UserProfile; sub?
           {active === 'tidur' && <SleepTab days={days} />}
           {active === 'gerd' && <GerdTab days={days} />}
           {active === 'latihan' && <ExerciseTab profile={profile} />}
+          {active === 'pencapaian' && <AchievementsTab days={days} profile={profile} />}
           {active === 'lab' && <LabTab />}
           {active === 'dokter' && <DoctorTab days={days} profile={profile} />}
           {active === 'edukasi' && <EduTab />}
         </>
       )}
-      <UrgentCard />
+      {active !== 'pencapaian' && <UrgentCard />}
+    </div>
+  );
+}
+
+function AchievementsTab({ days, profile }: { days: DailyEntry[]; profile: UserProfile }) {
+  const list = useAchievements(days, profile);
+  if (!list) return <p className="text-muted">Memuat…</p>;
+  const earned = list.filter((s) => s.earnedAt);
+  const rest = list.filter((s) => !s.earnedAt).sort((a, b) => b.progress - a.progress);
+  return (
+    <div className="space-y-4">
+      <div className="rise rounded-[28px] border border-line bg-gradient-to-br from-[#2a2410] via-card to-card p-5">
+        <p className="text-sm text-muted">Pencapaian diraih</p>
+        <p className="text-5xl font-bold tabular">
+          {earned.length}
+          <span className="text-xl font-medium text-muted">/{list.length}</span>
+        </p>
+        <p className="mt-2 text-xs text-muted">Pencapaian bersifat permanen — sekali diraih tidak akan hilang, walau ada hari yang terlewat.</p>
+      </div>
+      {earned.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted">Sudah diraih</h2>
+          {earned.map((s) => <AchievementBadge key={s.a.id} s={s} />)}
+        </section>
+      )}
+      <section className="space-y-2">
+        <h2 className="text-sm font-semibold text-muted">Berikutnya</h2>
+        {rest.map((s) => <AchievementBadge key={s.a.id} s={s} />)}
+      </section>
     </div>
   );
 }
@@ -76,10 +109,6 @@ function SleepTab({ days }: { days: DailyEntry[] }) {
   const breathing = days.filter((d) => (d.breathingObserved ?? []).length > 0);
   return (
     <div className="space-y-4">
-      <Note tone="info" title="Tentang tidur">
-        {SLEEP_SAFETY_CARD}
-        <span className="mt-1 block">{DROWSY_DRIVING}</span>
-      </Note>
       {breathing.length > 0 && (
         <Note tone="caution" title="Pengamatan saat tidur tercatat">
           Jeda napas/tersedak/terbangun berulang tercatat pada {breathing.length} malam. Ini alasan baik untuk evaluasi tidur dengan tenaga kesehatan.
@@ -118,6 +147,10 @@ function SleepTab({ days }: { days: DailyEntry[] }) {
           </div>
         )}
       </Card>
+      <Note tone="info" title="Tentang tidur">
+        {SLEEP_SAFETY_CARD}
+        <span className="mt-1 block">{DROWSY_DRIVING}</span>
+      </Note>
     </div>
   );
 }
@@ -155,7 +188,7 @@ function GerdTab({ days }: { days: DailyEntry[] }) {
         ) : (
           <ul className="space-y-2">
             {episodes.slice(0, 30).map((e) => (
-              <li key={e.id} className="rounded-xl border border-line bg-white p-3 text-sm">
+              <li key={e.id} className="rounded-xl border border-line bg-field p-3 text-sm">
                 <a href={`#/catat/${e.date}`} className="font-medium text-accent">
                   {formatShort(e.date)} {e.time ?? ''}
                 </a>{' '}
@@ -270,7 +303,7 @@ function LabTab() {
         ) : (
           <ul className="space-y-2">
             {labs.map((l) => (
-              <li key={l.id} className="flex items-center gap-2 rounded-xl border border-line bg-white p-3 text-sm">
+              <li key={l.id} className="flex items-center gap-2 rounded-xl border border-line bg-field p-3 text-sm">
                 <div className="flex-1">
                   <p className="font-medium">
                     {l.test}: <span className="tabular">{fmt1(l.value)}</span> {l.unit}
@@ -351,7 +384,7 @@ function DoctorTab({ days, profile }: { days: DailyEntry[]; profile: UserProfile
         </Button>
         <ul className="mt-3 space-y-2">
           {notes.map((n) => (
-            <li key={n.id} className="flex items-center gap-2 rounded-xl border border-line bg-white p-2 text-sm">
+            <li key={n.id} className="flex items-center gap-2 rounded-xl border border-line bg-field p-2 text-sm">
               <button type="button" aria-label={n.done ? 'Tandai belum' : 'Tandai sudah dibahas'} onClick={() => void db.clinicianNotes.put({ ...n, done: !n.done })} className={cx('flex h-11 w-11 items-center justify-center rounded-lg', n.done ? 'text-accent' : 'text-muted')}>
                 <Check className="h-5 w-5" />
               </button>

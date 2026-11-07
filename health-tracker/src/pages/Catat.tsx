@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Scale, Utensils, Timer, Moon, Flame, Zap, Footprints, NotebookPen, Camera, Watch, Image as ImageIcon, Sparkles, Check, Loader2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, Camera, Watch, Image as ImageIcon, Sparkles, Check, Loader2, Trash2 } from 'lucide-react';
+import { MetricIcon, WeekStrip } from '../components/viz';
+import { isLogged } from '../domain/engagement';
 import type { DailyEntry, MealEntry, UserProfile } from '../domain/types';
 import { useDayDraft, saveProfile } from '../hooks/data';
 import { Button, Chips, ConfirmDialog, NumberField, Note, Scale5, Section, Segmented, TextField, TimeField, Toggle, Badge, useToast } from '../components/ui';
@@ -31,6 +33,8 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const today = todayKey();
+  const weekDays = useLiveQuery(() => db.days.toArray(), []) ?? [];
+  const loggedSet = new Set(weekDays.filter((x) => isLogged(x)).map((x) => x.date));
   const uricFlag = (useLiveQuery(() => db.labResults.filter((l) => /urat/i.test(l.test) && l.value >= 6.8).count(), []) ?? 0) > 0;
 
   // Write weight/meal energy to Health Connect when enabled (deduplicated by flags).
@@ -101,17 +105,26 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
 
   return (
     <div className="space-y-3">
-      <header className="flex items-center justify-between gap-2">
-        <button type="button" aria-label="Hari sebelumnya" className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-card" onClick={() => setDate(addDays(date, -1))}>
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <label className="flex-1 text-center">
-          <span className="block text-[15px] font-semibold">{date === today ? 'Hari ini' : formatLong(date)}</span>
-          <input type="date" aria-label="Pilih tanggal" className="mx-auto mt-0.5 block bg-transparent text-xs text-muted" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} />
-        </label>
-        <button type="button" aria-label="Hari berikutnya" disabled={date >= today} className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-card disabled:opacity-40" onClick={() => setDate(addDays(date, 1))}>
-          <ChevronRight className="h-5 w-5" />
-        </button>
+      <header className="space-y-3">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-sm text-muted">{formatLong(date)}</p>
+            <h1 className="text-[26px] font-bold tracking-tight">{date === today ? 'Catatan hari ini' : 'Catatan'}</h1>
+          </div>
+          <div className="flex gap-1.5">
+            <button type="button" aria-label="Minggu sebelumnya" className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card" onClick={() => setDate(addDays(date, -7))}>
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button type="button" aria-label="Minggu berikutnya" disabled={addDays(date, 7) > today && date >= today} className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card disabled:opacity-30" onClick={() => setDate(addDays(date, 7) > today ? today : addDays(date, 7))}>
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <label className="relative flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card">
+              <CalendarDays className="h-5 w-5" aria-hidden />
+              <input type="date" aria-label="Pilih tanggal" className="absolute inset-0 opacity-0" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} />
+            </label>
+          </div>
+        </div>
+        <WeekStrip date={date} maxDate={today} logged={(k) => loggedSet.has(k)} onPick={setDate} />
       </header>
       <p className="text-center text-xs text-muted" role="status" aria-live="polite">
         {state === 'saving' ? 'Menyimpan…' : state === 'saved' ? <span className="text-accent"><Check className="inline h-3.5 w-3.5" /> Tersimpan {savedAt}</span> : state === 'error' ? 'Gagal menyimpan — coba lagi' : exists ? 'Catatan tersimpan. Ubah isian untuk memperbarui.' : 'Semua isian opsional. Tersimpan otomatis.'}
@@ -123,12 +136,12 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
         {isAndroid() ? (
           <QuickAction icon={syncing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Watch className="h-5 w-5" />} label="Sinkron jam" onClick={() => void syncHc()} />
         ) : (
-          <QuickAction icon={<Watch className="h-5 w-5" />} label="Jam (Android)" onClick={() => toast('Sinkron Health Connect hanya di aplikasi Android. Pakai screenshot di sini.')} />
+          <QuickAction icon={<Watch className="h-5 w-5" />} label="Sinkron jam" onClick={() => toast('Sinkron Health Connect hanya di aplikasi Android. Pakai screenshot di sini.')} />
         )}
         <QuickAction icon={<ImageIcon className="h-5 w-5" />} label="Screenshot jam" onClick={() => setShotOpen(true)} />
       </div>
 
-      <Section title="Berat & pinggang" icon={<Scale className="h-5 w-5" />} summary={d.weightKg ? `${fmt1(d.weightKg)} kg` : 'Boleh dilewati'} defaultOpen={!d.weightKg && date === today}>
+      <Section title="Berat & pinggang" icon={<MetricIcon metric="weight" />} summary={d.weightKg ? `${fmt1(d.weightKg)} kg` : 'Boleh dilewati'} defaultOpen={!d.weightKg && date === today}>
         <div className="grid grid-cols-2 gap-3">
           <NumberField label="Berat" unit="kg" value={d.weightKg} min={LIMITS.weightKg[0]} max={LIMITS.weightKg[1]} onChange={(v) => update({ weightKg: v })} />
           <NumberField label="Pinggang" hint="(opsional)" unit="cm" value={d.waistCm} min={LIMITS.waistCm[0]} max={LIMITS.waistCm[1]} onChange={(v) => update({ waistCm: v })} />
@@ -139,7 +152,7 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
 
       <Section
         title="Makan & makro"
-        icon={<Utensils className="h-5 w-5" />}
+        icon={<MetricIcon metric="kcal" />}
         summary={nut ? `${fmt0(nut.caloriesKcal)} kkal · protein ${fmt0(nut.proteinG)} g${d.nutritionComplete ? ' · lengkap' : ''}` : 'Belum dicatat'}
       >
         {d.meals.length > 0 ? (
@@ -172,7 +185,7 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
       </Section>
 
       {(profile.fastingEnabled || ramadan || d.fastingStartAt) && (
-        <Section title={ramadan ? 'Puasa Ramadan' : 'Puasa (opsional)'} icon={<Timer className="h-5 w-5" />} summary={fastMin != null ? `${formatMinutes(fastMin)}` : 'Belum dicatat'}>
+        <Section title={ramadan ? 'Puasa Ramadan' : 'Puasa (opsional)'} icon={<MetricIcon metric="water" />} summary={fastMin != null ? `${formatMinutes(fastMin)}` : 'Belum dicatat'}>
           <p className="text-xs text-muted">{ramadan ? 'Isi jam sahur selesai dan jam berbuka.' : `Durasi dicatat ke tanggal puasa berakhir. Jendela makanmu: ${profile.eatingWindowStart}–${profile.eatingWindowEnd}.`}</p>
           <div className="grid grid-cols-2 gap-3">
             <ClockPair resetKey={date} labels={[ramadan ? 'Selesai sahur' : 'Mulai puasa (makan terakhir)', ramadan ? 'Berbuka' : 'Selesai (makan pertama)']} start={fStart} end={fEnd} onChange={(a, b) => setTimes('fast', a, b)} />
@@ -202,7 +215,7 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
         </Section>
       )}
 
-      <Section title="Tidur semalam" icon={<Moon className="h-5 w-5" />} summary={d.sleepDurationMinutes ? `${formatMinutes(d.sleepDurationMinutes)}${d.sleepSource && d.sleepSource !== 'manual' ? ' · dari jam' : ''}` : 'Boleh diisi besok pagi'}>
+      <Section title="Tidur semalam" icon={<MetricIcon metric="sleep" />} summary={d.sleepDurationMinutes ? `${formatMinutes(d.sleepDurationMinutes)}${d.sleepSource && d.sleepSource !== 'manual' ? ' · dari jam' : ''}` : 'Boleh diisi besok pagi'}>
         <div className="grid grid-cols-2 gap-3">
           <ClockPair resetKey={date} labels={['Tidur jam', 'Bangun jam']} start={bed} end={wake} onChange={(a, b) => setTimes('sleep', a, b)} />
           <NumberField label="Total tidur" unit="mnt" hint="(bisa dikoreksi)" value={d.sleepDurationMinutes} min={0} max={1440} integer onChange={(v) => update({ sleepDurationMinutes: v, sleepSource: 'manual' })} />
@@ -216,11 +229,11 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
         <NumberField label="Tidur siang" unit="mnt" value={d.napMinutes} min={0} max={600} integer onChange={(v) => update({ napMinutes: v })} />
       </Section>
 
-      <Section title="GERD" icon={<Flame className="h-5 w-5" />} summary={d.gerdEpisodes.length ? `${d.gerdEpisodes.length} episode` : d.gerdAny === false ? 'Tidak ada' : 'Belum diisi'}>
+      <Section title="GERD" icon={<MetricIcon metric="gerd" />} summary={d.gerdEpisodes.length ? `${d.gerdEpisodes.length} episode` : d.gerdAny === false ? 'Tidak ada' : 'Belum diisi'}>
         <GerdEditor day={d} onChange={(p) => update(p)} />
       </Section>
 
-      <Section title="Energi & kantuk" icon={<Zap className="h-5 w-5" />} summary={d.sleepinessAfterLunch1to5 ? `Kantuk siang ${d.sleepinessAfterLunch1to5}/5` : 'Belum diisi'}>
+      <Section title="Energi & kantuk" icon={<MetricIcon metric="energy" />} summary={d.sleepinessAfterLunch1to5 ? `Kantuk siang ${d.sleepinessAfterLunch1to5}/5` : 'Belum diisi'}>
         <Scale5 label="Kantuk pagi" value={d.sleepinessMorning1to5} onChange={(v) => update({ sleepinessMorning1to5: v })} low="Segar" high="Sangat mengantuk" />
         <Scale5 label="Kantuk setelah makan siang" value={d.sleepinessAfterLunch1to5} onChange={(v) => update({ sleepinessAfterLunch1to5: v })} low="Segar" high="Sangat mengantuk" />
         <Scale5 label="Kantuk sore" value={d.sleepinessAfternoon1to5} onChange={(v) => update({ sleepinessAfternoon1to5: v })} low="Segar" high="Sangat mengantuk" />
@@ -233,7 +246,7 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
         {((d.sleepinessAfterLunch1to5 ?? 0) >= 4 || (d.sleepinessMorning1to5 ?? 0) >= 4) && <Note tone="info">Jangan menyetir atau mengoperasikan mesin saat sangat mengantuk.</Note>}
       </Section>
 
-      <Section title="Aktivitas & latihan" icon={<Footprints className="h-5 w-5" />} summary={[d.steps != null ? `${fmt0(d.steps)} langkah` : null, d.walkingMinutes ? `jalan ${d.walkingMinutes} mnt` : null, d.strengthWorkout ? 'kekuatan ✓' : null].filter(Boolean).join(' · ') || 'Belum diisi'}>
+      <Section title="Aktivitas & latihan" icon={<MetricIcon metric="steps" />} summary={[d.steps != null ? `${fmt0(d.steps)} langkah` : null, d.walkingMinutes ? `jalan ${d.walkingMinutes} mnt` : null, d.strengthWorkout ? 'kekuatan ✓' : null].filter(Boolean).join(' · ') || 'Belum diisi'}>
         <div className="grid grid-cols-2 gap-3">
           <NumberField label="Langkah" value={d.steps} min={0} max={100000} integer onChange={(v) => update({ steps: v, stepsSource: 'manual' })} hint={d.stepsSource === 'healthconnect' ? '(dari jam)' : undefined} />
           <NumberField label="Jalan" unit="mnt" value={d.walkingMinutes} min={0} max={1440} integer onChange={(v) => update({ walkingMinutes: v })} />
@@ -249,7 +262,7 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
         <p className="text-xs text-muted">Nyeri, sakit, pusing, atau sesak yang tidak biasa: lewati latihan hari ini.</p>
       </Section>
 
-      <Section title="Catatan & data jam" icon={<NotebookPen className="h-5 w-5" />} summary={d.notes ? d.notes.slice(0, 40) : 'Opsional'}>
+      <Section title="Catatan & data jam" icon={<MetricIcon metric="protein" />} summary={d.notes ? d.notes.slice(0, 40) : 'Opsional'}>
         <div className="grid grid-cols-3 gap-3">
           <NumberField label="Air" unit="gelas" value={d.waterGlasses} min={0} max={40} integer onChange={(v) => update({ waterGlasses: v })} />
           <NumberField label="Nadi istirahat" unit="bpm" value={d.restingHr} min={LIMITS.restingHr[0]} max={LIMITS.restingHr[1]} integer onChange={(v) => update({ restingHr: v, restingHrSource: 'manual' })} />
@@ -321,7 +334,7 @@ function ClockPair({ labels, start, end, onChange, resetKey }: { labels: [string
 
 function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="flex min-h-16 flex-col items-center justify-center gap-1 rounded-2xl border border-line bg-card px-1 text-xs font-medium text-ink active:bg-soft">
+    <button type="button" onClick={onClick} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-line bg-card px-1 text-xs font-medium text-ink active:bg-elev">
       <span className="text-accent">{icon}</span>
       {label}
     </button>
@@ -355,11 +368,11 @@ function StrengthLogger({ day, onChange }: { day: DailyEntry; onChange: (l: NonN
           onChange(next.sets || next.reps ? [...logs.filter((l) => l.exerciseId !== ex.id), next] : logs.filter((l) => l.exerciseId !== ex.id));
         };
         return (
-          <div key={ex.id} className="space-y-2 rounded-xl border border-line bg-white p-3">
+          <div key={ex.id} className="space-y-2 rounded-xl border border-line bg-field p-3">
             <p className="font-medium">{ex.name}</p>
             <label className="block text-sm">
               <span className="sr-only">Variasi {ex.name}</span>
-              <select className="min-h-11 w-full rounded-xl border border-line bg-white px-2" value={level} onChange={(e) => setLog({ level: Number(e.target.value) })}>
+              <select className="min-h-11 w-full rounded-xl border border-line bg-field px-2" value={level} onChange={(e) => setLog({ level: Number(e.target.value) })}>
                 {ex.ladder.map((l, i) => (
                   <option key={l.name} value={i}>
                     {i + 1}. {l.name}

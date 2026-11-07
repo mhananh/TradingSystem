@@ -10,8 +10,16 @@ const fromNum = (n: number) => {
   return formatShort(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
 };
 
-const C = { accent: '#2f6b4f', soft: '#9cb8a9', ink: '#23211e', muted: '#8a847b', caution: '#b7791f', info: '#2d5b86', grid: '#e6e0d6' };
-const axis = { fontSize: 11, fill: C.muted };
+export const C = {
+  accent: '#3ddc97', soft: '#7c8cff', ink: '#e9eff6', muted: '#8d9aab', caution: '#fbbf24', info: '#7ab8ff', grid: '#233041',
+  kcal: '#fb923c', protein: '#b197fc', sleep: '#7c8cff', steps: '#2dd4bf', gerd: '#fb7185', energy: '#facc15', weight: '#3ddc97',
+};
+const axis = { fontSize: 12, fill: C.muted };
+const tooltipProps = {
+  contentStyle: { background: '#1a2531', border: '1px solid #233041', borderRadius: 12, color: '#e9eff6', fontSize: 12 },
+  labelStyle: { color: '#8d9aab' },
+  cursor: { stroke: '#33465c', fill: 'rgba(255,255,255,0.04)' },
+};
 
 export interface WeightPoint {
   x: number;
@@ -32,13 +40,13 @@ export function WeightChart({ points, goal, projection, height = 240 }: { points
           <CartesianGrid stroke={C.grid} vertical={false} />
           <XAxis dataKey="x" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fromNum} tick={axis} tickCount={5} />
           <YAxis domain={[lo, hi]} tick={axis} tickFormatter={(v) => fmt0(v)} unit="" width={44} />
-          <Tooltip labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [`${fmt1(Number(v))} kg`, String(name)]} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip {...tooltipProps} labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [`${fmt1(Number(v))} kg`, String(name)]} />
+          <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           {goal && <ReferenceLine y={goal} stroke={C.accent} strokeDasharray="4 4" label={{ value: `Target ${fmt0(goal)} kg`, fontSize: 10, fill: C.accent, position: 'insideBottomRight' }} />}
-          <Line name="Timbangan harian" dataKey="weight" stroke="none" legendType="circle" dot={{ r: 3, fill: C.muted, stroke: C.muted }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
-          <Line name="Rata-rata 7 hari" dataKey="avg" stroke={C.accent} strokeWidth={2.5} dot={false} connectNulls={false} isAnimationActive={false} />
+          <Line name="Timbangan harian" dataKey="weight" stroke="none" fill={C.muted} legendType="circle" dot={{ r: 3, fill: C.muted, stroke: C.muted }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
+          <Line name="Rata-rata 7 hari" dataKey="avg" stroke={C.accent} strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} style={{ filter: 'drop-shadow(0 0 6px rgba(61,220,151,0.45))' }} />
           {projection && <Line name="Skenario optimis" dataKey="opt" stroke={C.info} strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
-          {projection && <Line name="Skenario tengah" dataKey="mid" stroke={C.ink} strokeDasharray="6 4" dot={false} isAnimationActive={false} />}
+          {projection && <Line name="Skenario tengah" dataKey="mid" stroke="#c8d3df" strokeDasharray="6 4" dot={false} isAnimationActive={false} />}
           {projection && <Line name="Skenario pesimis" dataKey="pes" stroke={C.caution} strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
         </ComposedChart>
       </ResponsiveContainer>
@@ -54,7 +62,7 @@ export function SimpleLine({ data, dataKey, name, unit, height = 180, color = C.
           <CartesianGrid stroke={C.grid} vertical={false} />
           <XAxis dataKey="x" type="number" domain={['dataMin', 'dataMax']} tickFormatter={fromNum} tick={axis} tickCount={5} />
           <YAxis tick={axis} width={44} domain={domain ?? ['auto', 'auto']} />
-          <Tooltip labelFormatter={(v) => fromNum(Number(v))} formatter={(v) => [`${fmt1(Number(v))} ${unit}`, name]} />
+          <Tooltip {...tooltipProps} labelFormatter={(v) => fromNum(Number(v))} formatter={(v) => [`${fmt1(Number(v))} ${unit}`, name]} />
           <Line name={name} dataKey={dataKey} stroke={color} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
@@ -63,7 +71,7 @@ export function SimpleLine({ data, dataKey, name, unit, height = 180, color = C.
 }
 
 /** Daily bars where incomplete days are a distinct, labelled series (not colour alone: hatched outline + legend + tooltip). */
-export function NutritionBars({ data, target, unit, label, height = 200 }: { data: { x: number; complete?: number; incomplete?: number }[]; target: number; unit: string; label: string; height?: number }) {
+export function NutritionBars({ data, target, unit, label, height = 200, color = C.accent }: { data: { x: number; complete?: number; incomplete?: number }[]; target: number; unit: string; label: string; height?: number; color?: string }) {
   return (
     <div style={{ height }} role="img" aria-label={`Grafik ${label} harian; hari tanpa data dibiarkan kosong`}>
       <ResponsiveContainer>
@@ -71,11 +79,11 @@ export function NutritionBars({ data, target, unit, label, height = 200 }: { dat
           <CartesianGrid stroke={C.grid} vertical={false} />
           <XAxis dataKey="x" tickFormatter={fromNum} tick={axis} interval="preserveStartEnd" />
           <YAxis tick={axis} width={48} />
-          <Tooltip labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [`${fmt0(Number(v))} ${unit}`, String(name)]} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip {...tooltipProps} labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [`${fmt0(Number(v))} ${unit}`, String(name)]} />
+          <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           <ReferenceLine y={target} stroke={C.ink} strokeDasharray="4 4" label={{ value: `Target ${fmt0(target)}`, fontSize: 10, fill: C.ink, position: 'insideTopRight' }} />
-          <Bar name="Hari lengkap" dataKey="complete" fill={C.accent} isAnimationActive={false} />
-          <Bar name="Belum lengkap" dataKey="incomplete" fill="#ffffff" stroke={C.muted} strokeDasharray="3 2" isAnimationActive={false} />
+          <Bar name="Hari lengkap" dataKey="complete" fill={color} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+          <Bar name="Belum lengkap" dataKey="incomplete" fill="#121b25" stroke={C.muted} strokeDasharray="3 2" isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -91,11 +99,11 @@ export function SleepChart({ data, targetHours, height = 220 }: { data: { x: num
           <XAxis dataKey="x" tickFormatter={fromNum} tick={axis} interval="preserveStartEnd" />
           <YAxis yAxisId="h" tick={axis} width={40} domain={[0, 10]} />
           <YAxis yAxisId="s" orientation="right" tick={axis} width={28} domain={[0, 5]} />
-          <Tooltip labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [name === 'Tidur (jam)' ? `${fmt1(Number(v))} jam` : `${fmt1(Number(v))}/5`, String(name)]} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip {...tooltipProps} labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [name === 'Tidur (jam)' ? `${fmt1(Number(v))} jam` : `${fmt1(Number(v))}/5`, String(name)]} />
+          <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           <ReferenceLine yAxisId="h" y={targetHours} stroke={C.accent} strokeDasharray="4 4" />
-          <Bar yAxisId="h" name="Tidur (jam)" dataKey="sleepH" fill={C.soft} isAnimationActive={false} />
-          <Line yAxisId="s" name="Kantuk siang (1–5)" dataKey="sleepiness" stroke={C.caution} strokeWidth={2} dot={{ r: 3 }} connectNulls={false} isAnimationActive={false} />
+          <Bar yAxisId="h" name="Tidur (jam)" dataKey="sleepH" fill={C.sleep} fillOpacity={0.75} radius={[6, 6, 0, 0]} isAnimationActive={false} />
+          <Line yAxisId="s" name="Kantuk siang (1–5)" dataKey="sleepiness" stroke={C.energy} strokeWidth={2.5} dot={{ r: 3, fill: C.energy }} connectNulls={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -110,10 +118,10 @@ export function WeeklyBars({ data, bars, height = 200 }: { data: { week: string;
           <CartesianGrid stroke={C.grid} vertical={false} />
           <XAxis dataKey="week" tick={axis} />
           <YAxis tick={axis} width={40} allowDecimals={false} />
-          <Tooltip />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <Tooltip {...tooltipProps} />
+          <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           {bars.map((b, i) => (
-            <Bar key={b.key} name={b.name} dataKey={b.key} fill={b.color ?? [C.accent, C.caution, C.info][i % 3]} isAnimationActive={false} />
+            <Bar key={b.key} name={b.name} dataKey={b.key} fill={b.color ?? [C.accent, C.caution, C.info][i % 3]} radius={[6, 6, 0, 0]} isAnimationActive={false} />
           ))}
         </BarChart>
       </ResponsiveContainer>

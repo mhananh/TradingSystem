@@ -12,6 +12,7 @@ export type MealSource = 'manual' | 'library' | 'favorite' | 'ai-photo' | 'ai-la
 export interface UserProfile {
   id: 'me';
   schemaVersion: number;
+  displayName?: string;
   sexForBmr: SexForBmr;
   ageYears: number;
   heightCm: number;
@@ -138,6 +139,7 @@ export interface DailyEntry {
   hcSyncedAt?: string;
   hcWrittenWeightKg?: number;
   waterGlasses?: number;
+  focusDone?: string[]; // ids of 'Fokus hari ini' items the user ticked
   notes?: string;
   updatedAt: string;
 }

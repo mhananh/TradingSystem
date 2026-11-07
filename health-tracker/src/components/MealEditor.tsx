@@ -38,7 +38,7 @@ export function MealList({ meals, onChange }: { meals: MealEntry[]; onChange: (m
   return (
     <div className="space-y-2">
       {sorted.map((m) => (
-        <div key={m.id} className="flex items-start gap-2 rounded-xl border border-line bg-white p-3">
+        <div key={m.id} className="flex items-start gap-2 rounded-xl border border-line bg-field p-3">
           <button type="button" className="min-h-11 flex-1 text-left" onClick={() => setEditing(m)}>
             <p className="text-[15px] font-medium">
               {m.time && <span className="mr-1 text-muted tabular">{m.time}</span>}
@@ -176,7 +176,7 @@ function FoodPicker({ open, onClose, onPick }: { open: boolean; onClose: () => v
                 <div key={f.id} className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="min-h-11 flex-1 rounded-xl border border-line bg-white p-3 text-left"
+                    className="min-h-11 flex-1 rounded-xl border border-line bg-field p-3 text-left"
                     onClick={() =>
                       onPick({
                         id: newId(),
@@ -210,7 +210,7 @@ function FoodPicker({ open, onClose, onPick }: { open: boolean; onClose: () => v
         <p className="mb-2 text-xs text-muted">Porsi warung berbeda-beda; sesuaikan setelah ditambahkan.</p>
         <div className="space-y-2">
           {FOOD_LIBRARY.filter((f) => filt(f.name)).map((f) => (
-            <button key={f.id} type="button" className="block min-h-11 w-full rounded-xl border border-line bg-white p-3 text-left" onClick={() => onPick(fromLib(f))}>
+            <button key={f.id} type="button" className="block min-h-11 w-full rounded-xl border border-line bg-field p-3 text-left" onClick={() => onPick(fromLib(f))}>
               <p className="text-[15px] font-medium">{f.name}</p>
               <p className="text-xs text-muted">
                 {f.portion} · {fmt0(f.caloriesKcal)} kkal · P {fmt1(f.proteinG)} g

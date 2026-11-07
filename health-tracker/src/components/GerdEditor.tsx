@@ -57,7 +57,7 @@ export function GerdEditor({ day, onChange }: { day: DailyEntry; onChange: (patc
         onChange={(v) => onChange({ gerdAny: v == null ? undefined : v === 'yes' })}
       />
       {day.gerdEpisodes.map((e) => (
-        <div key={e.id} className="flex items-start gap-2 rounded-xl border border-line bg-white p-3">
+        <div key={e.id} className="flex items-start gap-2 rounded-xl border border-line bg-field p-3">
           <button type="button" className="min-h-11 flex-1 text-left" onClick={() => setEp(e)}>
             <p className="text-[15px] font-medium">
               {e.time ?? '–'} · {label(SEVERITY, e.severity)}

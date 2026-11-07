@@ -8,7 +8,7 @@ export function cx(...c: (string | false | null | undefined)[]) {
 
 export function Card({ children, className, title, action, as: As = 'section' }: { children: ReactNode; className?: string; title?: ReactNode; action?: ReactNode; as?: 'section' | 'div' }) {
   return (
-    <As className={cx('rounded-2xl border border-line bg-card p-4 shadow-[0_1px_2px_rgba(35,33,30,0.04)]', className)}>
+    <As className={cx('rounded-3xl border border-line bg-card p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_12px_32px_-16px_rgba(0,0,0,0.6)]', className)}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between gap-2">
           {title && <h2 className="text-[15px] font-semibold text-ink">{title}</h2>}
@@ -25,10 +25,10 @@ export function Button({
   children, onClick, variant = 'secondary', type = 'button', disabled, className, full, ariaLabel,
 }: { children: ReactNode; onClick?: () => void; variant?: BtnVariant; type?: 'button' | 'submit'; disabled?: boolean; className?: string; full?: boolean; ariaLabel?: string }) {
   const styles: Record<BtnVariant, string> = {
-    primary: 'bg-accent text-white active:bg-[#255a41] disabled:bg-[#9cb8a9]',
-    secondary: 'bg-soft text-ink border border-line active:bg-line disabled:opacity-50',
+    primary: 'bg-accent text-on-accent font-semibold shadow-[0_8px_24px_-8px_var(--color-accent)] active:brightness-90 disabled:opacity-40 disabled:shadow-none',
+    secondary: 'bg-soft text-ink border border-line active:bg-line disabled:opacity-40',
     ghost: 'bg-transparent text-accent active:bg-accent-soft disabled:opacity-50',
-    danger: 'bg-urgent-soft text-urgent border border-[#f3c6c2] active:bg-[#f9d8d5] disabled:opacity-50',
+    danger: 'bg-urgent-soft text-urgent border border-urgent/30 active:brightness-110 disabled:opacity-40',
   };
   return (
     <button
@@ -84,7 +84,7 @@ export function NumberField({
   return (
     <div>
       <Label htmlFor={id} hint={hint}>{label}</Label>
-      <div className={cx('flex min-h-11 items-center rounded-xl border bg-white px-3', err ? 'border-caution' : 'border-line')}>
+      <div className={cx('flex min-h-11 items-center rounded-xl border bg-field px-3', err ? 'border-caution' : 'border-line')}>
         <input
           id={id}
           inputMode="decimal"
@@ -116,9 +116,9 @@ export function TextField({ label, value, onChange, placeholder, multiline, hint
     <div>
       <Label htmlFor={id} hint={hint}>{label}</Label>
       {multiline ? (
-        <textarea id={id} rows={3} className="w-full rounded-xl border border-line bg-white px-3 py-2 text-[16px] outline-none" value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        <textarea id={id} rows={3} className="w-full rounded-xl border border-line bg-field px-3 py-2 text-[16px] outline-none" value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       ) : (
-        <input id={id} type={type} className="min-h-11 w-full rounded-xl border border-line bg-white px-3 text-[16px] outline-none" value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+        <input id={id} type={type} className="min-h-11 w-full rounded-xl border border-line bg-field px-3 text-[16px] outline-none" value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       )}
     </div>
   );
@@ -129,7 +129,7 @@ export function TimeField({ label, value, onChange, hint }: { label: ReactNode; 
   return (
     <div>
       <Label htmlFor={id} hint={hint}>{label}</Label>
-      <input id={id} type="time" className="min-h-11 w-full rounded-xl border border-line bg-white px-3 text-[16px] outline-none tabular" value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />
+      <input id={id} type="time" className="min-h-11 w-full rounded-xl border border-line bg-field px-3 text-[16px] outline-none tabular" value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} />
     </div>
   );
 }
@@ -139,7 +139,7 @@ export function DateField({ label, value, onChange, max, min }: { label: ReactNo
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
-      <input id={id} type="date" max={max} min={min} className="min-h-11 w-full rounded-xl border border-line bg-white px-3 text-[16px] outline-none" value={value ?? ''} onChange={(e) => e.target.value && onChange(e.target.value)} />
+      <input id={id} type="date" max={max} min={min} className="min-h-11 w-full rounded-xl border border-line bg-field px-3 text-[16px] outline-none" value={value ?? ''} onChange={(e) => e.target.value && onChange(e.target.value)} />
     </div>
   );
 }
@@ -157,7 +157,7 @@ export function Segmented<T extends string>({ label, options, value, onChange, a
               type="button"
               aria-pressed={on}
               onClick={() => onChange(on && allowClear ? undefined : o.id)}
-              className={cx('min-h-11 rounded-xl border px-3 text-sm', on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line bg-white text-ink')}
+              className={cx('min-h-11 rounded-xl border px-3 text-sm', on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line bg-field text-ink')}
             >
               {o.label}
             </button>
@@ -182,7 +182,7 @@ export function Chips({ label, options, value, onChange }: { label?: ReactNode; 
               type="button"
               aria-pressed={on}
               onClick={() => onChange(on ? cur.filter((x) => x !== o.id) : [...cur, o.id])}
-              className={cx('min-h-11 rounded-full border px-3 text-sm', on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line bg-white')}
+              className={cx('min-h-11 rounded-full border px-3 text-sm', on ? 'border-accent bg-accent-soft font-medium text-accent' : 'border-line bg-field')}
             >
               {o.label}
             </button>
@@ -205,7 +205,7 @@ export function Scale5({ label, value, onChange, low, high }: { label: ReactNode
             aria-pressed={value === n}
             aria-label={`${n} dari 5`}
             onClick={() => onChange(value === n ? undefined : n)}
-            className={cx('min-h-11 rounded-xl border text-[15px] tabular', value === n ? 'border-accent bg-accent text-white' : 'border-line bg-white')}
+            className={cx('min-h-11 rounded-xl border text-[15px] tabular', value === n ? 'border-accent bg-accent font-semibold text-on-accent' : 'border-line bg-field')}
           >
             {n}
           </button>
@@ -243,7 +243,7 @@ export function Toggle({ label, checked, onChange, hint }: { label: ReactNode; c
 
 export function Section({ title, summary, children, defaultOpen, icon }: { title: string; summary?: ReactNode; children: ReactNode; defaultOpen?: boolean; icon?: ReactNode }) {
   return (
-    <details className="group rounded-2xl border border-line bg-card" open={defaultOpen}>
+    <details className="group rounded-3xl border border-line bg-card" open={defaultOpen}>
       <summary className="flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3">
         {icon && <span className="text-accent">{icon}</span>}
         <span className="flex-1">
@@ -317,13 +317,13 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   }, [open, onClose]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="pb-safe flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl bg-bg sm:rounded-3xl"
+        className="pb-safe flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl border-t border-line bg-bg sm:rounded-3xl"
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 className="text-base font-semibold">{title}</h2>
@@ -388,12 +388,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4">
         {msgs.map((m) => (
-          <div key={m.id} className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-sm text-white shadow-lg">
+          <div key={m.id} className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-xl border border-line bg-elev px-4 py-3 text-sm text-ink shadow-2xl">
             <span>{m.text}</span>
             {m.undo && (
               <button
                 type="button"
-                className="min-h-11 rounded-lg px-2 font-semibold text-[#9fd3b6]"
+                className="min-h-11 rounded-lg px-2 font-semibold text-accent"
                 onClick={() => {
                   m.undo!();
                   setMsgs((all) => all.filter((x) => x.id !== m.id));

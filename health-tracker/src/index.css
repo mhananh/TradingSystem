@@ -1,38 +1,69 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 
+/* Premium dark theme. Metric colours are used consistently on every screen and chart. */
 @theme {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --color-bg: #f6f3ee;
-  --color-card: #fffdfa;
-  --color-ink: #23211e;
-  --color-muted: #6b665f;
-  --color-line: #e6e0d6;
-  --color-soft: #efeae2;
-  --color-accent: #2f6b4f;
-  --color-accent-soft: #e3efe8;
-  --color-caution: #9a6412;
-  --color-caution-soft: #fbf0dc;
-  --color-urgent: #b42318;
-  --color-urgent-soft: #fdeceb;
-  --color-info: #2d5b86;
-  --color-info-soft: #e5eef7;
+  --color-bg: #0a1017;
+  --color-card: #121b25;
+  --color-elev: #1a2531;
+  --color-field: #0e1620;
+  --color-ink: #e9eff6;
+  --color-muted: #8d9aab;
+  --color-line: #233041;
+  --color-soft: #18232f;
+  --color-accent: #3ddc97;
+  --color-on-accent: #04261a;
+  --color-accent-soft: #123528;
+  --color-caution: #fbbf24;
+  --color-caution-soft: #33270b;
+  --color-urgent: #f87171;
+  --color-urgent-soft: #3a1618;
+  --color-info: #7ab8ff;
+  --color-info-soft: #11263d;
+
+  --color-m-weight: #3ddc97;
+  --color-m-kcal: #fb923c;
+  --color-m-protein: #b197fc;
+  --color-m-sleep: #7c8cff;
+  --color-m-steps: #2dd4bf;
+  --color-m-gerd: #fb7185;
+  --color-m-water: #38bdf8;
+  --color-m-energy: #facc15;
 }
 
 html, body, #root { min-height: 100%; }
+html { color-scheme: dark; }
 body {
-  background: var(--color-bg);
+  background:
+    radial-gradient(1200px 500px at 50% -200px, rgba(61, 220, 151, 0.10), transparent 60%),
+    radial-gradient(800px 400px at 100% 0, rgba(124, 140, 255, 0.08), transparent 60%),
+    var(--color-bg);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
 }
-:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 60%, white); outline-offset: 2px; border-radius: 10px; }
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent); outline-offset: 2px; border-radius: 12px; }
 input, select, textarea, button { font: inherit; }
 input[type="number"] { -moz-appearance: textfield; }
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
-.pt-safe { padding-top: max(env(safe-area-inset-top), 0px); }
+input::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)); }
+.pt-safe { padding-top: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)); }
 details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 .tabular { font-variant-numeric: tabular-nums; }
+
+@keyframes ring-in { from { stroke-dashoffset: var(--ring-len); } }
+.ring-anim { animation: ring-in 900ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes pop { 0% { transform: scale(.6); opacity: 0 } 60% { transform: scale(1.12); opacity: 1 } 100% { transform: scale(1) } }
+.pop { animation: pop 420ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+.rise { animation: rise 380ms ease-out both; }
+@keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+.shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ring-anim, .pop, .rise, .shimmer { animation: none !important; }
+}

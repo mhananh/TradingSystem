@@ -105,6 +105,7 @@ export const dailyEntrySchema = z.object({
   hcSyncedAt: iso.optional(),
   hcWrittenWeightKg: between(...LIMITS.weightKg).optional(),
   waterGlasses: between(0, 40).optional(),
+  focusDone: z.array(z.string()).optional(),
   notes: z.string().max(5000).optional(),
   updatedAt: iso,
 });
@@ -112,6 +113,7 @@ export const dailyEntrySchema = z.object({
 export const profileSchema = z.object({
   id: z.literal('me'),
   schemaVersion: z.number().int(),
+  displayName: z.string().max(40).optional(),
   sexForBmr: z.enum(['male', 'female']),
   ageYears: between(...LIMITS.ageYears),
   heightCm: between(...LIMITS.heightCm),

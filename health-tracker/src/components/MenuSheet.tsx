@@ -53,7 +53,7 @@ export function MenuSheet({ open, onClose, profile, remainingKcal, remainingProt
       </Button>
       {err && <Note tone="caution">{err}</Note>}
       {res?.options.map((o) => (
-        <div key={o.name} className="space-y-1 rounded-xl border border-line bg-white p-3">
+        <div key={o.name} className="space-y-1 rounded-xl border border-line bg-field p-3">
           <p className="font-medium">{o.name}</p>
           <p className="text-sm text-muted">{o.description}</p>
           <p className="text-xs tabular">

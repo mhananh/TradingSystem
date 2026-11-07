@@ -13,6 +13,7 @@ export function BodyFields({ p, set }: { p: UserProfile; set: Patch }) {
   const bmi = calculateBmi(p.startingWeightKg, p.heightCm);
   return (
     <div className="space-y-4">
+      <TextField label="Nama panggilan" hint="(opsional, untuk sapaan)" value={p.displayName} onChange={(v) => set({ displayName: v.trim() ? v.slice(0, 40) : undefined })} />
       <Segmented label="Jenis kelamin (untuk rumus BMR)" options={[{ id: 'male', label: 'Pria' }, { id: 'female', label: 'Wanita' }]} value={p.sexForBmr} allowClear={false} onChange={(v) => v && set({ sexForBmr: v })} />
       <div className="grid grid-cols-2 gap-3">
         <NumberField label="Usia" unit="th" value={p.ageYears} min={LIMITS.ageYears[0]} max={LIMITS.ageYears[1]} integer onChange={(v) => v && set({ ageYears: v })} />
@@ -83,7 +84,7 @@ export function NutritionFields({ p, set, currentWeight }: { p: UserProfile; set
         </div>
         <p className="col-span-2 text-xs text-muted">Dihitung dari berat {fmt1(w)} kg. Target kalori tidak berubah otomatis.</p>
       </div>
-      <details className="rounded-xl border border-line bg-white p-3 text-sm">
+      <details className="rounded-xl border border-line bg-field p-3 text-sm">
         <summary className="min-h-11 cursor-pointer font-medium text-accent">Bagaimana ini diperkirakan?</summary>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
           {ESTIMATE_EXPLAINER.map((t) => (

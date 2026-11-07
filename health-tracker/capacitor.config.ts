@@ -6,6 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   android: { allowMixedContent: false },
   plugins: {
+    SystemBars: { style: 'DARK', initialViewportFitValueHint: 'cover' },
     LocalNotifications: { smallIcon: 'ic_stat_notify', iconColor: '#2f6b4f' },
   },
 };

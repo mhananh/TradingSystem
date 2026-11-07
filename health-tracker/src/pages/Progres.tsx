@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Loader2, Sparkles, Lightbulb } from 'lucide-react';
 import type { UserProfile } from '../domain/types';
 import { useAllDays } from '../hooks/data';
-import { Badge, Button, Card, EmptyState, Note, Segmented, Stat } from '../components/ui';
-import { NutritionBars, SimpleLine, SleepChart, WeeklyBars, WeightChart, dayNum } from '../components/Charts';
+import { Badge, Button, Card, EmptyState, Note, Segmented, Stat, cx } from '../components/ui';
+import { NutritionBars, SimpleLine, SleepChart, WeeklyBars, WeightChart, dayNum, C } from '../components/Charts';
 import { addDays, daysBetween, formatMedium, formatShort, todayKey, weekStart } from '../lib/date';
 import { fmt0, fmt1, fmt2, signed1 } from '../lib/format';
 import { calculateRequiredWeeklyRate, calculateRollingAverage, calculateWeightChange, classifyPace, effectiveNutrition } from '../domain/calc';
@@ -15,11 +15,20 @@ import type { WeeklyReviewResult } from '../ai/schemas';
 import { AiError } from '../ai/client';
 
 type Range = '14' | '30' | '90' | 'all';
+type Tab = 'ringkasan' | 'temuan' | 'makan' | 'tidur' | 'gerak';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'ringkasan', label: 'Ringkasan' },
+  { id: 'temuan', label: 'Temuan' },
+  { id: 'makan', label: 'Makan' },
+  { id: 'tidur', label: 'Tidur & energi' },
+  { id: 'gerak', label: 'GERD & gerak' },
+];
 
 export default function Progres({ profile }: { profile: UserProfile }) {
   const days = useAllDays();
   const [range, setRange] = useState<Range>('30');
-  const [showProj, setShowProj] = useState(true);
+  const [tab, setTab] = useState<Tab>('ringkasan');
+  const [showProj, setShowProj] = useState(false);
   const today = todayKey();
   const [review, setReview] = useState<WeeklyReviewResult | null>(null);
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -69,6 +78,7 @@ export default function Progres({ profile }: { profile: UserProfile }) {
   const pace = classifyPace(required, m.current);
   const plan = planWeeklyLossKg(profile, m.current, m.observed.ok ? m.observed.tdeeKcal : null);
   const insights = buildInsights(days, profile, today, m.current);
+  const readyCount = insights.filter((i) => i.status === 'ready').length;
   const cp = checkpointAdvice(days, profile, today, m.trend.kgPerWeek ?? null);
 
   async function runReview() {
@@ -111,7 +121,18 @@ export default function Progres({ profile }: { profile: UserProfile }) {
         allowClear={false}
         onChange={(v) => v && setRange(v)}
       />
+      <nav aria-label="Bagian progres" className="-mx-4 overflow-x-auto px-4">
+        <div className="flex gap-2">
+          {TABS.map((t) => (
+            <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)} className={cx('flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm', tab === t.id ? 'border-accent bg-accent-soft font-semibold text-accent' : 'border-line bg-card text-muted')}>
+              {t.label}
+              {t.id === 'temuan' && readyCount > 0 && <span className="rounded-full bg-accent px-1.5 text-[11px] font-bold text-on-accent">{readyCount}</span>}
+            </button>
+          ))}
+        </div>
+      </nav>
 
+      {tab === 'ringkasan' && (<>
       <Card title="Berat badan">
         <div className="mb-3 grid grid-cols-3 gap-3">
           <Stat label="Awal" value={fmt1(profile.startingWeightKg)} unit="kg" />
@@ -130,7 +151,7 @@ export default function Progres({ profile }: { profile: UserProfile }) {
         )}
         {m.projection && (
           <label className="mt-2 flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" checked={showProj} onChange={(e) => setShowProj(e.target.checked)} className="h-5 w-5 accent-[#2f6b4f]" />
+            <input type="checkbox" checked={showProj} onChange={(e) => setShowProj(e.target.checked)} className="h-5 w-5 accent-[var(--color-accent)]" />
             Tampilkan skenario (bukan janji)
           </label>
         )}
@@ -210,18 +231,37 @@ export default function Progres({ profile }: { profile: UserProfile }) {
         </Card>
       )}
 
-      <Card title="Insight (hanya bila data cukup)">
+      </>)}
+      {tab === 'temuan' && (<>
+      <Card title="Temuan dari datamu">
         <ul className="space-y-3">
-          {insights.map((i) => (
-            <li key={i.id} className="rounded-xl border border-line bg-white p-3">
-              <p className="text-sm font-medium">{i.question}</p>
-              <p className="mt-1 text-sm">{i.text}</p>
-              {i.status === 'insufficient' && <p className="mt-1 text-xs text-muted">Perlu: {i.needed}</p>}
-              {i.detail && <p className="mt-1 text-xs text-muted">{i.detail}</p>}
+          {insights.filter((i) => i.status === 'ready').map((i) => (
+            <li key={i.id} className="rise relative overflow-hidden rounded-2xl border border-line bg-field p-3.5 pl-4">
+              <span className="absolute inset-y-0 left-0 w-1" style={{ background: i.tone === 'positive' ? C.accent : i.tone === 'caution' ? C.caution : C.info }} />
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{i.question}</p>
+              <p className="mt-1 text-[15px] leading-snug">{i.text}</p>
+              {i.detail && <p className="mt-1.5 text-xs text-muted">{i.detail}</p>}
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-muted">Korelasi bukan sebab-akibat. Banyak faktor bisa berperan bersamaan.</p>
+        {readyCount === 0 && <p className="text-sm text-muted">Belum ada temuan — data sedang dikumpulkan. Terus catat; temuan muncul otomatis.</p>}
+        {insights.some((i) => i.status === 'insufficient') && (
+          <details className="mt-3 rounded-2xl border border-line bg-field p-3">
+            <summary className="flex min-h-11 cursor-pointer items-center justify-between text-sm">
+              <span>Sedang mengumpulkan data</span>
+              <span className="rounded-full bg-soft px-2 py-0.5 text-xs text-muted">{insights.length - readyCount} temuan</span>
+            </summary>
+            <ul className="mt-2 space-y-2 text-sm">
+              {insights.filter((i) => i.status === 'insufficient').map((i) => (
+                <li key={i.id} className="border-t border-line pt-2">
+                  <p className="font-medium">{i.question}</p>
+                  <p className="text-xs text-muted">Perlu: {i.needed}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <p className="mt-3 text-xs text-muted">Korelasi bukan sebab-akibat. Banyak faktor bisa berperan bersamaan.</p>
       </Card>
 
       <Card title={<span className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-accent" /> Review mingguan AI</span>}>
@@ -263,31 +303,38 @@ export default function Progres({ profile }: { profile: UserProfile }) {
         )}
       </Card>
 
+      </>)}
+      {tab === 'makan' && (<>
       <Card title="Kalori harian">
-        {m.kcal.length ? <NutritionBars data={m.kcal} target={profile.calorieTargetKcal} unit="kkal" label="kalori" /> : <EmptyState title="Belum ada catatan makan" body="Hari tanpa catatan dibiarkan kosong, bukan dianggap nol." />}
+        {m.kcal.length ? <NutritionBars data={m.kcal} target={profile.calorieTargetKcal} unit="kkal" label="kalori" color={C.kcal} /> : <EmptyState title="Belum ada catatan makan" body="Hari tanpa catatan dibiarkan kosong, bukan dianggap nol." />}
       </Card>
       <Card title="Protein harian">
-        {m.prot.length ? <NutritionBars data={m.prot} target={profile.proteinMinG} unit="g" label="protein" /> : <EmptyState title="Belum ada data protein" body="Isi total protein atau daftar makanan di Catat." />}
+        {m.prot.length ? <NutritionBars data={m.prot} target={profile.proteinMinG} unit="g" label="protein" color={C.protein} /> : <EmptyState title="Belum ada data protein" body="Isi total protein atau daftar makanan di Catat." />}
       </Card>
+      </>)}
+      {tab === 'tidur' && (<>
       <Card title="Tidur & kantuk siang">
         {m.sleep.length ? <SleepChart data={m.sleep} targetHours={profile.sleepTargetHours} /> : <EmptyState title="Belum ada data tidur" body="Isi tidur di pagi hari, atau sinkronkan dari jam." />}
       </Card>
-      <Card title="GERD per minggu">
-        <WeeklyBars data={m.weeks} bars={[{ key: 'gerd', name: 'Hari dengan GERD' }, { key: 'logged', name: 'Hari status GERD diisi', color: '#c9c2b6' }]} />
-      </Card>
-      <Card title="Aktivitas per minggu">
-        <WeeklyBars data={m.weeks} bars={[{ key: 'strength', name: 'Sesi kekuatan' }]} height={160} />
-        <WeeklyBars data={m.weeks} bars={[{ key: 'walk', name: 'Menit jalan', color: '#2d5b86' }]} height={160} />
-      </Card>
-      {m.waist.length > 0 && (
-        <Card title="Lingkar pinggang">
-          <SimpleLine data={m.waist} dataKey="waist" name="Pinggang" unit="cm" />
-        </Card>
-      )}
       {m.rhr.length > 0 && (
         <Card title="Nadi istirahat">
-          <SimpleLine data={m.rhr} dataKey="rhr" name="Nadi istirahat" unit="bpm" color="#2d5b86" />
+          <SimpleLine data={m.rhr} dataKey="rhr" name="Nadi istirahat" unit="bpm" color={C.steps} />
           <p className="mt-1 text-xs text-muted">Sering turun pelan seiring kebugaran membaik; bisa naik saat kurang tidur atau sakit.</p>
+        </Card>
+      )}
+      </>)}
+      {tab === 'gerak' && (<>
+      <Card title="GERD per minggu">
+        <WeeklyBars data={m.weeks} bars={[{ key: 'gerd', name: 'Hari dengan GERD', color: C.gerd }, { key: 'logged', name: 'Hari status GERD diisi', color: '#4a5b70' }]} />
+      </Card>
+      <Card title="Aktivitas per minggu">
+        <WeeklyBars data={m.weeks} bars={[{ key: 'strength', name: 'Sesi kekuatan', color: C.protein }]} height={160} />
+        <WeeklyBars data={m.weeks} bars={[{ key: 'walk', name: 'Menit jalan', color: C.steps }]} height={160} />
+      </Card>
+      </>)}
+      {tab === 'ringkasan' && m.waist.length > 0 && (
+        <Card title="Lingkar pinggang">
+          <SimpleLine data={m.waist} dataKey="waist" name="Pinggang" unit="cm" />
         </Card>
       )}
     </div>
