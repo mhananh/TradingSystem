@@ -22,7 +22,7 @@ export const APP_VERSION = '1.0.0';
 export default function Pengaturan({ profile }: { profile: UserProfile; sub?: string }) {
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-semibold">Pengaturan</h1>
+      <h1 className="font-display text-[30px] font-semibold">Pengaturan</h1>
       <ProfileSettings profile={profile} />
       <AiSettingsCard />
       <IntegrationsCard />

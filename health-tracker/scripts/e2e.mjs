@@ -42,7 +42,7 @@ try {
   await page.getByRole('button', { name: 'Lanjut' }).click();
   await page.getByRole('button', { name: 'Lanjut' }).click();
   await page.getByRole('button', { name: 'Mulai' }).click();
-  await page.getByRole('button', { name: 'Catat cepat' }).waitFor();
+  await page.getByText('Angka hari ini').waitFor();
   await page.screenshot({ path: `${OUT}/03-beranda-kosong.png`, fullPage: true });
   await noHScroll('beranda');
   check('start weight logged as first weigh-in', await page.getByText('90 kg').count() + (await page.getByText(/90\b/).count()) > 0);
@@ -65,9 +65,9 @@ try {
   await noHScroll('catat');
 
   // Meals add up
-  await page.getByRole('button', { name: 'Favorit & contoh' }).click();
+  await page.getByRole('button', { name: 'Favorit & contoh', exact: true }).click();
   await page.getByRole('button', { name: /Nasi putih/ }).click();
-  await page.getByRole('button', { name: 'Favorit & contoh' }).click();
+  await page.getByRole('button', { name: 'Favorit & contoh', exact: true }).click();
   await page.getByRole('button', { name: /Telur rebus/ }).click();
   await page.getByText(/Total: 225/).waitFor({ timeout: 4000 });
   check('meals add up (150 + 75 = 225 kkal)', true);

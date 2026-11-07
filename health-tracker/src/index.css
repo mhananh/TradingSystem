@@ -1,69 +1,76 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/fraunces";
 
-/* Premium dark theme. Metric colours are used consistently on every screen and chart. */
+/*
+  Warm, human direction (reference: Gentler Streak). Paper background, flat surfaces,
+  one serif display face, earthy per-metric colours. No glows, no gradients, no blur
+  (blur and fixed backgrounds are expensive in Android WebView and cause scroll jank).
+*/
 @theme {
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --color-bg: #0a1017;
-  --color-card: #121b25;
-  --color-elev: #1a2531;
-  --color-field: #0e1620;
-  --color-ink: #e9eff6;
-  --color-muted: #8d9aab;
-  --color-line: #233041;
-  --color-soft: #18232f;
-  --color-accent: #3ddc97;
-  --color-on-accent: #04261a;
-  --color-accent-soft: #123528;
-  --color-caution: #fbbf24;
-  --color-caution-soft: #33270b;
-  --color-urgent: #f87171;
-  --color-urgent-soft: #3a1618;
-  --color-info: #7ab8ff;
-  --color-info-soft: #11263d;
+  --font-sans: "DM Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --color-bg: #f4efe6;
+  --color-card: #fffcf7;
+  --color-elev: #fffefb;
+  --color-field: #ffffff;
+  --color-ink: #1e1a16;
+  --color-muted: #6a6258;
+  --color-line: #e5dccd;
+  --color-soft: #ece4d7;
+  --color-accent: #2f6b57;
+  --color-on-accent: #fffcf7;
+  --color-accent-soft: #dfeae2;
+  --color-caution: #98580f;
+  --color-caution-soft: #f6e7cf;
+  --color-urgent: #b42318;
+  --color-urgent-soft: #fbe4e1;
+  --color-info: #2e5e86;
+  --color-info-soft: #e1ebf4;
 
-  --color-m-weight: #3ddc97;
-  --color-m-kcal: #fb923c;
-  --color-m-protein: #b197fc;
-  --color-m-sleep: #7c8cff;
-  --color-m-steps: #2dd4bf;
-  --color-m-gerd: #fb7185;
-  --color-m-water: #38bdf8;
-  --color-m-energy: #facc15;
+  --color-m-weight: #2f6b57;
+  --color-m-kcal: #c2552e;
+  --color-m-protein: #7a5c99;
+  --color-m-sleep: #3e5c8a;
+  --color-m-steps: #4e8a6a;
+  --color-m-gerd: #b5476b;
+  --color-m-water: #3c7fa3;
+  --color-m-energy: #b9821f;
 }
 
 html, body, #root { min-height: 100%; }
-html { color-scheme: dark; }
+html { color-scheme: light; }
 body {
-  background:
-    radial-gradient(1200px 500px at 50% -200px, rgba(61, 220, 151, 0.10), transparent 60%),
-    radial-gradient(800px 400px at 100% 0, rgba(124, 140, 255, 0.08), transparent 60%),
-    var(--color-bg);
-  background-attachment: fixed;
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;
+  text-rendering: optimizeLegibility;
 }
-:focus-visible { outline: 3px solid color-mix(in srgb, var(--color-accent) 70%, transparent); outline-offset: 2px; border-radius: 12px; }
+.font-display { font-family: var(--font-display); font-optical-sizing: auto; letter-spacing: -0.01em; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 8px; }
 input, select, textarea, button { font: inherit; }
+button, a { touch-action: manipulation; }
 input[type="number"] { -moz-appearance: textfield; }
 input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input::-webkit-calendar-picker-indicator { filter: invert(0.8); }
 .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)); }
 .pt-safe { padding-top: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)); }
 details > summary { list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
 .tabular { font-variant-numeric: tabular-nums; }
 
+/* Motion only for state changes, short, transform/opacity only. */
+@keyframes sheet-in { from { transform: translateY(24px); opacity: 0 } to { transform: none; opacity: 1 } }
+.sheet-in { animation: sheet-in 200ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+.fade-in { animation: fade-in 160ms ease-out both; }
+@keyframes check { 0% { transform: scale(.7) } 100% { transform: scale(1) } }
+.pop { animation: check 150ms cubic-bezier(.2,.8,.2,1) both; }
 @keyframes ring-in { from { stroke-dashoffset: var(--ring-len); } }
-.ring-anim { animation: ring-in 900ms cubic-bezier(.2,.8,.2,1) both; }
-@keyframes pop { 0% { transform: scale(.6); opacity: 0 } 60% { transform: scale(1.12); opacity: 1 } 100% { transform: scale(1) } }
-.pop { animation: pop 420ms cubic-bezier(.2,.8,.2,1) both; }
-@keyframes rise { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
-.rise { animation: rise 380ms ease-out both; }
-@keyframes shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
-.shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
+.ring-anim { animation: ring-in 500ms cubic-bezier(.2,.8,.2,1) both; }
+/* legacy class names kept as no-ops so older components don't animate */
+.rise, .shimmer { animation: none; }
 @media (prefers-reduced-motion: reduce) {
-  .ring-anim, .pop, .rise, .shimmer { animation: none !important; }
+  .sheet-in, .fade-in, .pop, .ring-anim { animation: none !important; }
 }

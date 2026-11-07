@@ -11,14 +11,14 @@ const fromNum = (n: number) => {
 };
 
 export const C = {
-  accent: '#3ddc97', soft: '#7c8cff', ink: '#e9eff6', muted: '#8d9aab', caution: '#fbbf24', info: '#7ab8ff', grid: '#233041',
-  kcal: '#fb923c', protein: '#b197fc', sleep: '#7c8cff', steps: '#2dd4bf', gerd: '#fb7185', energy: '#facc15', weight: '#3ddc97',
+  accent: '#2f6b57', soft: '#3e5c8a', ink: '#1e1a16', muted: '#6a6258', caution: '#98580f', info: '#2e5e86', grid: '#e5dccd',
+  kcal: '#c2552e', protein: '#7a5c99', sleep: '#3e5c8a', steps: '#4e8a6a', gerd: '#b5476b', energy: '#b9821f', weight: '#2f6b57',
 };
 const axis = { fontSize: 12, fill: C.muted };
 const tooltipProps = {
-  contentStyle: { background: '#1a2531', border: '1px solid #233041', borderRadius: 12, color: '#e9eff6', fontSize: 12 },
-  labelStyle: { color: '#8d9aab' },
-  cursor: { stroke: '#33465c', fill: 'rgba(255,255,255,0.04)' },
+  contentStyle: { background: '#fffcf7', border: '1px solid #e5dccd', borderRadius: 12, color: '#1e1a16', fontSize: 12 },
+  labelStyle: { color: '#6a6258' },
+  cursor: { stroke: '#cfc4b2', fill: 'rgba(30,26,22,0.04)' },
 };
 
 export interface WeightPoint {
@@ -44,9 +44,9 @@ export function WeightChart({ points, goal, projection, height = 240 }: { points
           <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           {goal && <ReferenceLine y={goal} stroke={C.accent} strokeDasharray="4 4" label={{ value: `Target ${fmt0(goal)} kg`, fontSize: 10, fill: C.accent, position: 'insideBottomRight' }} />}
           <Line name="Timbangan harian" dataKey="weight" stroke="none" fill={C.muted} legendType="circle" dot={{ r: 3, fill: C.muted, stroke: C.muted }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
-          <Line name="Rata-rata 7 hari" dataKey="avg" stroke={C.accent} strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} style={{ filter: 'drop-shadow(0 0 6px rgba(61,220,151,0.45))' }} />
+          <Line name="Rata-rata 7 hari" dataKey="avg" stroke={C.accent} strokeWidth={3} dot={false} connectNulls={false} isAnimationActive={false} />
           {projection && <Line name="Skenario optimis" dataKey="opt" stroke={C.info} strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
-          {projection && <Line name="Skenario tengah" dataKey="mid" stroke="#c8d3df" strokeDasharray="6 4" dot={false} isAnimationActive={false} />}
+          {projection && <Line name="Skenario tengah" dataKey="mid" stroke="#1e1a16" strokeDasharray="6 4" dot={false} isAnimationActive={false} />}
           {projection && <Line name="Skenario pesimis" dataKey="pes" stroke={C.caution} strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
         </ComposedChart>
       </ResponsiveContainer>
@@ -83,7 +83,7 @@ export function NutritionBars({ data, target, unit, label, height = 200, color =
           <Legend wrapperStyle={{ fontSize: 12, color: C.muted }} />
           <ReferenceLine y={target} stroke={C.ink} strokeDasharray="4 4" label={{ value: `Target ${fmt0(target)}`, fontSize: 10, fill: C.ink, position: 'insideTopRight' }} />
           <Bar name="Hari lengkap" dataKey="complete" fill={color} radius={[6, 6, 0, 0]} isAnimationActive={false} />
-          <Bar name="Belum lengkap" dataKey="incomplete" fill="#121b25" stroke={C.muted} strokeDasharray="3 2" isAnimationActive={false} />
+          <Bar name="Belum lengkap" dataKey="incomplete" fill="#fffcf7" stroke={C.muted} strokeDasharray="3 2" isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

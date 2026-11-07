@@ -1,5 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
+import type Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { db, getMeta, newId, setMeta } from '../db/db';
 import type { AiUsageRecord } from '../domain/types';
@@ -90,8 +89,10 @@ export async function runStructured<T extends z.ZodType>(req: StructuredRequest<
 }
 
 async function runClaude<T extends z.ZodType>(req: StructuredRequest<T>, apiKey: string, model: string, effort: Effort): Promise<z.infer<T>> {
+  // Loaded on demand so the SDK isn't part of the initial app bundle.
+  const [{ default: AnthropicSdk }, { betaZodOutputFormat }] = await Promise.all([import('@anthropic-ai/sdk'), import('@anthropic-ai/sdk/helpers/beta/zod')]);
   // Personal BYOK app: the key belongs to the device owner and is never bundled in the build.
-  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 2, timeout: 90_000 });
+  const client = new AnthropicSdk({ apiKey, dangerouslyAllowBrowser: true, maxRetries: 2, timeout: 90_000 });
   const content: Anthropic.Beta.BetaContentBlockParam[] = req.parts.map((p) =>
     p.type === 'text' ? { type: 'text', text: p.text } : { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.base64 } },
   );
@@ -116,11 +117,11 @@ async function runClaude<T extends z.ZodType>(req: StructuredRequest<T>, apiKey:
     if (!check.success) throw new AiError('parse', 'Jawaban AI tidak sesuai format. Coba lagi atau isi manual.');
     return check.data;
   } catch (e) {
-    throw mapClaudeError(e);
+    throw mapClaudeError(e, AnthropicSdk);
   }
 }
 
-function mapClaudeError(e: unknown): AiError {
+function mapClaudeError(e: unknown, Anthropic: typeof import('@anthropic-ai/sdk').default): AiError {
   if (e instanceof AiError) return e;
   if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError)
     return new AiError('auth', 'API key Claude ditolak. Periksa key di Pengaturan → AI (dan saldo/billing di console.anthropic.com).');

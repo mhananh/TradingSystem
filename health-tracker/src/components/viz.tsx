@@ -60,7 +60,7 @@ export function Rings({ rings, size = 156, stroke = 12, center }: { rings: RingS
                 strokeDasharray={len}
                 strokeDashoffset={len * (1 - pct)}
                 className="ring-anim"
-                style={{ ['--ring-len' as string]: `${len}`, filter: pct >= 1 ? `drop-shadow(0 0 6px ${color})` : undefined }}
+                style={{ ['--ring-len' as string]: `${len}`, }}
               />
             </g>
           );
@@ -195,13 +195,13 @@ export function AchievementBadge({ s, compact }: { s: AchievementState; compact?
   const Icon = ACH_ICON[s.a.icon];
   const earned = !!s.earnedAt;
   return (
-    <div className={cx('flex items-center gap-3 rounded-2xl border p-3', earned ? 'border-accent/30 bg-accent-soft/40' : 'border-line bg-field')}>
+    <div className={cx('flex items-center gap-3 rounded-2xl border p-3', earned ? 'border-line bg-card' : 'border-line bg-card')}>
       <span
         className={cx('relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl', earned ? 'pop' : '')}
         style={{
-          background: earned ? 'linear-gradient(135deg, var(--color-accent), var(--color-m-steps))' : 'var(--color-soft)',
+          background: earned ? 'var(--color-accent)' : 'var(--color-soft)',
           color: earned ? 'var(--color-on-accent)' : 'var(--color-muted)',
-          boxShadow: earned ? '0 6px 18px -6px var(--color-accent)' : undefined,
+          
         }}
       >
         {earned ? <Icon className="h-5 w-5" strokeWidth={2.4} /> : <Lock className="h-4 w-4" />}

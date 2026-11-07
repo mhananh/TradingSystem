@@ -34,7 +34,7 @@ export default function Kesehatan({ profile, sub }: { profile: UserProfile; sub?
   const active: Sub = (SUBS.find((s) => s.id === sub)?.id ?? 'tidur') as Sub;
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Kesehatan</h1>
+      <h1 className="font-display text-[30px] font-semibold">Kesehatan</h1>
       <nav aria-label="Bagian kesehatan" className="-mx-4 overflow-x-auto px-4">
         <div className="flex gap-2">
           {SUBS.map((s) => (
@@ -69,9 +69,9 @@ function AchievementsTab({ days, profile }: { days: DailyEntry[]; profile: UserP
   const rest = list.filter((s) => !s.earnedAt).sort((a, b) => b.progress - a.progress);
   return (
     <div className="space-y-4">
-      <div className="rise rounded-[28px] border border-line bg-gradient-to-br from-[#2a2410] via-card to-card p-5">
+      <div className="rounded-[20px] bg-soft p-5">
         <p className="text-sm text-muted">Pencapaian diraih</p>
-        <p className="text-5xl font-bold tabular">
+        <p className="font-display text-5xl font-semibold tabular">
           {earned.length}
           <span className="text-xl font-medium text-muted">/{list.length}</span>
         </p>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, Camera, Watch, Image as ImageIcon, Sparkles, Check, Loader2, Trash2 } from 'lucide-react';
 import { MetricIcon, WeekStrip } from '../components/viz';
+import { QuickLogBody } from '../components/QuickLog';
 import { isLogged } from '../domain/engagement';
 import type { DailyEntry, MealEntry, UserProfile } from '../domain/types';
 import { useDayDraft, saveProfile } from '../hooks/data';
@@ -106,24 +107,22 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
   return (
     <div className="space-y-3">
       <header className="space-y-3">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-sm text-muted">{formatLong(date)}</p>
-            <h1 className="text-[26px] font-bold tracking-tight">{date === today ? 'Catatan hari ini' : 'Catatan'}</h1>
-          </div>
-          <div className="flex gap-1.5">
-            <button type="button" aria-label="Minggu sebelumnya" className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card" onClick={() => setDate(addDays(date, -7))}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted">{formatLong(date)}</p>
+          <div className="-mr-2 flex">
+            <button type="button" aria-label="Minggu sebelumnya" className="flex h-11 w-11 items-center justify-center rounded-full text-muted active:bg-soft" onClick={() => setDate(addDays(date, -7))}>
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <button type="button" aria-label="Minggu berikutnya" disabled={addDays(date, 7) > today && date >= today} className="flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card disabled:opacity-30" onClick={() => setDate(addDays(date, 7) > today ? today : addDays(date, 7))}>
+            <button type="button" aria-label="Minggu berikutnya" disabled={date >= today} className="flex h-11 w-11 items-center justify-center rounded-full text-muted active:bg-soft disabled:opacity-30" onClick={() => setDate(addDays(date, 7) > today ? today : addDays(date, 7))}>
               <ChevronRight className="h-5 w-5" />
             </button>
-            <label className="relative flex h-11 w-11 items-center justify-center rounded-full border border-line bg-card">
+            <label className="relative flex h-11 w-11 items-center justify-center rounded-full text-muted active:bg-soft">
               <CalendarDays className="h-5 w-5" aria-hidden />
               <input type="date" aria-label="Pilih tanggal" className="absolute inset-0 opacity-0" value={date} max={today} onChange={(e) => e.target.value && setDate(e.target.value)} />
             </label>
           </div>
         </div>
+        <h1 className="font-display text-[30px] font-semibold leading-tight">{date === today ? 'Catatan hari ini' : 'Catatan'}</h1>
         <WeekStrip date={date} maxDate={today} logged={(k) => loggedSet.has(k)} onPick={setDate} />
       </header>
       <p className="text-center text-xs text-muted" role="status" aria-live="polite">
@@ -131,15 +130,28 @@ export default function Catat({ profile, date }: { profile: UserProfile; date: s
       </p>
       {ramadan && <Note tone="info">Mode Ramadan aktif untuk tanggal ini (tanggal perkiraan).</Note>}
 
-      <div className="grid grid-cols-3 gap-2">
-        <QuickAction icon={<Camera className="h-5 w-5" />} label="Foto makanan" onClick={() => setAiOpen('photo')} />
-        {isAndroid() ? (
-          <QuickAction icon={syncing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Watch className="h-5 w-5" />} label="Sinkron jam" onClick={() => void syncHc()} />
-        ) : (
-          <QuickAction icon={<Watch className="h-5 w-5" />} label="Sinkron jam" onClick={() => toast('Sinkron Health Connect hanya di aplikasi Android. Pakai screenshot di sini.')} />
+      {date === today && (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold">Cepat</h2>
+          <QuickLogBody profile={profile} />
+        </section>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {date !== today && (
+          <Button onClick={() => setAiOpen('photo')}>
+            <Camera className="h-4 w-4" /> Foto makanan
+          </Button>
         )}
-        <QuickAction icon={<ImageIcon className="h-5 w-5" />} label="Screenshot jam" onClick={() => setShotOpen(true)} />
+        {isAndroid() && (
+          <Button onClick={() => void syncHc()}>
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Watch className="h-4 w-4" />} Sinkron jam
+          </Button>
+        )}
+        <Button onClick={() => setShotOpen(true)}>
+          <ImageIcon className="h-4 w-4" /> Screenshot jam
+        </Button>
       </div>
+      <h2 className="pt-2 font-display text-xl font-semibold">Detail</h2>
 
       <Section title="Berat & pinggang" icon={<MetricIcon metric="weight" />} summary={d.weightKg ? `${fmt1(d.weightKg)} kg` : 'Boleh dilewati'} defaultOpen={!d.weightKg && date === today}>
         <div className="grid grid-cols-2 gap-3">
@@ -329,15 +341,6 @@ function ClockPair({ labels, start, end, onChange, resetKey }: { labels: [string
       <TimeField label={labels[0]} value={a} onChange={(v) => { setA(v); onChange(v, b); }} />
       <TimeField label={labels[1]} value={b} onChange={(v) => { setB(v); onChange(a, v); }} />
     </>
-  );
-}
-
-function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-line bg-card px-1 text-xs font-medium text-ink active:bg-elev">
-      <span className="text-accent">{icon}</span>
-      {label}
-    </button>
   );
 }
 

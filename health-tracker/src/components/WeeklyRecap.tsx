@@ -74,12 +74,12 @@ function Big({ metric, label, value, unit, sub }: { metric: Metric; label: strin
     <div className="flex items-center gap-3">
       <MetricIcon metric={metric} size="lg" />
       <div>
-        <p className="text-xs text-white/60">{label}</p>
-        <p className="text-3xl font-semibold tracking-tight tabular">
+        <p className="text-xs text-muted">{label}</p>
+        <p className="font-display text-4xl font-semibold tabular">
           {value}
-          {unit && <span className="ml-1 text-sm font-medium text-white/60">{unit}</span>}
+          {unit && <span className="ml-1 text-sm font-medium text-muted">{unit}</span>}
         </p>
-        {sub && <p className="text-xs text-white/60">{sub}</p>}
+        {sub && <p className="text-xs text-muted">{sub}</p>}
       </div>
     </div>
   );
@@ -94,15 +94,15 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
   const slides = useMemo(
     () => [
       {
-        bg: 'from-[#0f2a22] to-[#0a1017]',
+        bg: 'bg-[#e8efe6]',
         body: (
           <div className="space-y-4">
-            <p className="text-sm uppercase tracking-widest text-accent">Rekap mingguan</p>
-            <h2 className="text-4xl font-bold leading-tight">Minggu ke-{r.weekNumber}</h2>
-            <p className="text-white/70">{formatShort(r.start)} – {formatShort(r.end)}</p>
+            <p className="text-sm font-medium text-accent">Rekap mingguan</p>
+            <h2 className="font-display text-5xl font-semibold leading-tight">Minggu ke-{r.weekNumber}</h2>
+            <p className="text-muted">{formatShort(r.start)} – {formatShort(r.end)}</p>
             <div className="flex gap-1.5 pt-4">
               {Array.from({ length: 7 }, (_, k) => (
-                <span key={k} className={cx('h-10 flex-1 rounded-xl', k < r.loggedDays ? 'bg-accent' : 'bg-white/10')} />
+                <span key={k} className={cx('h-10 flex-1 rounded-xl', k < r.loggedDays ? 'bg-accent' : 'bg-ink/10')} />
               ))}
             </div>
             <p className="text-lg">
@@ -113,17 +113,17 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
         ),
       },
       {
-        bg: 'from-[#0d2b24] to-[#0a1017]',
+        bg: 'bg-[#e4ece3]',
         body: (
           <div className="space-y-5">
             <Big metric="weight" label="Berat rata-rata" value={r.cur.avgWeight != null ? fmt1(r.cur.avgWeight) : '–'} unit="kg" sub={dW != null ? `${dW <= 0 ? '−' : '+'}${fmt1(Math.abs(dW))} kg dari minggu sebelumnya` : 'Belum cukup timbangan untuk dibandingkan'} />
             <Sparkline values={r.weights} color="var(--color-m-weight)" width={300} height={90} />
-            <p className="text-sm text-white/60">Garis = rata-rata 7 hari pada hari kamu menimbang. Tren mingguan lebih bermakna dari angka harian.</p>
+            <p className="text-sm text-muted">Garis = rata-rata 7 hari pada hari kamu menimbang. Tren mingguan lebih bermakna dari angka harian.</p>
           </div>
         ),
       },
       {
-        bg: 'from-[#1a1d3d] to-[#0a1017]',
+        bg: 'bg-[#e3e8f1]',
         body: (
           <div className="space-y-5">
             <Big metric="sleep" label="Tidur rata-rata" value={r.cur.avgSleepMin != null ? formatMinutes(r.cur.avgSleepMin) : '–'} sub={r.prev.avgSleepMin != null && r.cur.avgSleepMin != null ? `${r.cur.avgSleepMin - r.prev.avgSleepMin >= 0 ? '+' : '−'}${Math.abs(Math.round(r.cur.avgSleepMin - r.prev.avgSleepMin))} mnt vs minggu sebelumnya` : undefined} />
@@ -133,7 +133,7 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
         ),
       },
       {
-        bg: 'from-[#2b1d0f] to-[#0a1017]',
+        bg: 'bg-[#f5e3d6]',
         body: (
           <div className="space-y-5">
             <Big metric="kcal" label="Kalori rata-rata (hari lengkap)" value={r.cur.avgKcal != null ? fmt0(r.cur.avgKcal) : '–'} unit="kkal" />
@@ -143,16 +143,16 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
         ),
       },
       {
-        bg: 'from-[#0c2a2a] to-[#0a1017]',
+        bg: 'bg-[#e2ede8]',
         body: (
           <div className="space-y-5">
             <Big metric="steps" label="Menit jalan" value={fmt0(r.cur.walkingMin)} unit="mnt" sub={r.cur.avgSteps != null ? `±${fmt0(r.cur.avgSteps)} langkah/hari` : undefined} />
             <Big metric="strength" label="Sesi latihan kekuatan" value={`${r.cur.strengthSessions}×`} />
             {r.newAchievements.length > 0 && (
               <div className="space-y-2 pt-2">
-                <p className="text-sm text-accent">🏆 Pencapaian baru</p>
+                <p className="text-sm font-medium text-accent">Pencapaian baru</p>
                 {r.newAchievements.map((a) => (
-                  <p key={a.a.id} className="rounded-xl bg-white/5 px-3 py-2 text-sm">{a.a.title}</p>
+                  <p key={a.a.id} className="rounded-xl bg-card px-3 py-2 text-sm">{a.a.title}</p>
                 ))}
               </div>
             )}
@@ -160,15 +160,15 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
         ),
       },
       {
-        bg: 'from-[#0f2a22] to-[#0a1017]',
+        bg: 'bg-[#e8efe6]',
         body: (
           <div className="space-y-5">
-            <p className="text-sm uppercase tracking-widest text-accent">Fokus minggu ini</p>
-            <p className="text-2xl font-semibold leading-snug">{r.focus}</p>
-            <p className="text-sm text-white/60">Satu hal kecil saja. Tidak ada target yang "gagal" — hanya langkah berikutnya.</p>
+            <p className="text-sm font-medium text-accent">Fokus minggu ini</p>
+            <p className="font-display text-3xl font-semibold leading-snug">{r.focus}</p>
+            <p className="text-sm text-muted">Satu hal kecil saja. Tidak ada target yang "gagal" — hanya langkah berikutnya.</p>
             <button
               type="button"
-              className="relative z-10 flex min-h-12 items-center gap-2 rounded-2xl bg-white/10 px-4 font-medium"
+              className="relative z-10 flex min-h-12 items-center gap-2 rounded-2xl bg-ink/10 px-4 font-medium"
               onClick={async (e) => {
                 e.stopPropagation();
                 const res = await shareText('Rekap Jejak Sehat', recapText(r));
@@ -196,17 +196,17 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
 
   const s = slides[i];
   return (
-    <div role="dialog" aria-modal="true" aria-label="Rekap mingguan" className={cx('fixed inset-0 z-[70] flex flex-col bg-gradient-to-b text-white', s.bg)}>
+    <div role="dialog" aria-modal="true" aria-label="Rekap mingguan" className={cx('fixed inset-0 z-[70] flex flex-col text-ink', s.bg)}>
       <div className="pt-safe px-4 pt-3">
         <div className="flex gap-1">
           {slides.map((_, k) => (
-            <span key={k} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
-              <span className={cx('block h-full rounded-full bg-white transition-all duration-300', k <= i ? 'w-full' : 'w-0')} />
+            <span key={k} className="h-1 flex-1 overflow-hidden rounded-full bg-ink/15">
+              <span className={cx('block h-full rounded-full bg-ink transition-all duration-300', k <= i ? 'w-full' : 'w-0')} />
             </span>
           ))}
         </div>
         <div className="mt-2 flex justify-end">
-          <button type="button" aria-label="Tutup rekap" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+          <button type="button" aria-label="Tutup rekap" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-full bg-ink/10">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -221,7 +221,7 @@ export function WeeklyRecap({ data, onClose }: { data: RecapData; onClose: () =>
         <div key={i} className="rise w-full max-w-md">{s.body}</div>
       </div>
       {i < slides.length - 1 && (
-        <div className="pb-safe flex items-center justify-center gap-1 pb-6 text-xs text-white/50">
+        <div className="pb-safe flex items-center justify-center gap-1 pb-6 text-xs text-muted">
           Ketuk untuk lanjut <ChevronRight className="h-3.5 w-3.5" />
         </div>
       )}

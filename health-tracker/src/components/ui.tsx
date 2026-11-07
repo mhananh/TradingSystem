@@ -8,7 +8,7 @@ export function cx(...c: (string | false | null | undefined)[]) {
 
 export function Card({ children, className, title, action, as: As = 'section' }: { children: ReactNode; className?: string; title?: ReactNode; action?: ReactNode; as?: 'section' | 'div' }) {
   return (
-    <As className={cx('rounded-3xl border border-line bg-card p-4 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_12px_32px_-16px_rgba(0,0,0,0.6)]', className)}>
+    <As className={cx('rounded-[20px] border border-line bg-card p-4', className)}>
       {(title || action) && (
         <div className="mb-3 flex items-center justify-between gap-2">
           {title && <h2 className="text-[15px] font-semibold text-ink">{title}</h2>}
@@ -25,8 +25,8 @@ export function Button({
   children, onClick, variant = 'secondary', type = 'button', disabled, className, full, ariaLabel,
 }: { children: ReactNode; onClick?: () => void; variant?: BtnVariant; type?: 'button' | 'submit'; disabled?: boolean; className?: string; full?: boolean; ariaLabel?: string }) {
   const styles: Record<BtnVariant, string> = {
-    primary: 'bg-accent text-on-accent font-semibold shadow-[0_8px_24px_-8px_var(--color-accent)] active:brightness-90 disabled:opacity-40 disabled:shadow-none',
-    secondary: 'bg-soft text-ink border border-line active:bg-line disabled:opacity-40',
+    primary: 'bg-accent text-on-accent font-semibold active:scale-[0.98] active:brightness-95 disabled:opacity-40',
+    secondary: 'bg-card text-ink border border-line active:bg-soft disabled:opacity-40',
     ghost: 'bg-transparent text-accent active:bg-accent-soft disabled:opacity-50',
     danger: 'bg-urgent-soft text-urgent border border-urgent/30 active:brightness-110 disabled:opacity-40',
   };
@@ -36,7 +36,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={cx('inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-medium transition-colors', styles[variant], full && 'w-full', className)}
+      className={cx('inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-medium transition-[transform,background-color] duration-100', styles[variant], full && 'w-full', className)}
     >
       {children}
     </button>
@@ -243,7 +243,7 @@ export function Toggle({ label, checked, onChange, hint }: { label: ReactNode; c
 
 export function Section({ title, summary, children, defaultOpen, icon }: { title: string; summary?: ReactNode; children: ReactNode; defaultOpen?: boolean; icon?: ReactNode }) {
   return (
-    <details className="group rounded-3xl border border-line bg-card" open={defaultOpen}>
+    <details className="group rounded-[20px] border border-line bg-card" open={defaultOpen}>
       <summary className="flex min-h-14 cursor-pointer items-center gap-3 px-4 py-3">
         {icon && <span className="text-accent">{icon}</span>}
         <span className="flex-1">
@@ -304,26 +304,39 @@ export function Progress({ value, max, label, tone = 'accent' }: { value: number
 }
 
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeRef.current();
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Android back button / browser back closes the sheet instead of leaving the app.
+    const token = Math.random();
+    window.history.pushState({ sheet: token }, '');
+    let closedByBack = false;
+    const onPop = () => {
+      closedByBack = true;
+      closeRef.current();
+    };
+    window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('keydown', onKey);
+      window.removeEventListener('popstate', onPop);
       document.body.style.overflow = prev;
+      if (!closedByBack && (window.history.state as { sheet?: number } | null)?.sheet === token) window.history.back();
     };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 fade-in sm:items-center" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="pb-safe flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-3xl border-t border-line bg-bg sm:rounded-3xl"
+        className="sheet-in pb-safe flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[28px] bg-bg sm:rounded-[28px]"
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 className="text-base font-semibold">{title}</h2>
@@ -388,12 +401,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4">
         {msgs.map((m) => (
-          <div key={m.id} className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-xl border border-line bg-elev px-4 py-3 text-sm text-ink shadow-2xl">
+          <div key={m.id} className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-2xl bg-ink px-4 py-3 text-sm text-card">
             <span>{m.text}</span>
             {m.undo && (
               <button
                 type="button"
-                className="min-h-11 rounded-lg px-2 font-semibold text-accent"
+                className="min-h-11 rounded-lg px-2 font-semibold text-[#9fd3b6]"
                 onClick={() => {
                   m.undo!();
                   setMsgs((all) => all.filter((x) => x.id !== m.id));

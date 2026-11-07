@@ -109,7 +109,7 @@ export default function Progres({ profile }: { profile: UserProfile }) {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Progres</h1>
+      <h1 className="font-display text-[30px] font-semibold">Tren</h1>
       <Segmented
         options={[
           { id: '14', label: '2 mgg' },
@@ -236,10 +236,9 @@ export default function Progres({ profile }: { profile: UserProfile }) {
       <Card title="Temuan dari datamu">
         <ul className="space-y-3">
           {insights.filter((i) => i.status === 'ready').map((i) => (
-            <li key={i.id} className="rise relative overflow-hidden rounded-2xl border border-line bg-field p-3.5 pl-4">
-              <span className="absolute inset-y-0 left-0 w-1" style={{ background: i.tone === 'positive' ? C.accent : i.tone === 'caution' ? C.caution : C.info }} />
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">{i.question}</p>
-              <p className="mt-1 text-[15px] leading-snug">{i.text}</p>
+            <li key={i.id} className="border-b border-line pb-3 last:border-0">
+              <p className="text-sm text-muted">{i.question}</p>
+              <p className="mt-1 font-display text-[19px] leading-snug">{i.text}</p>
               {i.detail && <p className="mt-1.5 text-xs text-muted">{i.detail}</p>}
             </li>
           ))}
@@ -325,7 +324,7 @@ export default function Progres({ profile }: { profile: UserProfile }) {
       </>)}
       {tab === 'gerak' && (<>
       <Card title="GERD per minggu">
-        <WeeklyBars data={m.weeks} bars={[{ key: 'gerd', name: 'Hari dengan GERD', color: C.gerd }, { key: 'logged', name: 'Hari status GERD diisi', color: '#4a5b70' }]} />
+        <WeeklyBars data={m.weeks} bars={[{ key: 'gerd', name: 'Hari dengan GERD', color: C.gerd }, { key: 'logged', name: 'Hari status GERD diisi', color: '#cfc4b2' }]} />
       </Card>
       <Card title="Aktivitas per minggu">
         <WeeklyBars data={m.weeks} bars={[{ key: 'strength', name: 'Sesi kekuatan', color: C.protein }]} height={160} />

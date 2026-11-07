@@ -1,18 +1,19 @@
-import { useEffect, useState } from 'react';
-import { Home, PenLine, LineChart, HeartPulse, Settings, WifiOff } from 'lucide-react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { Sun, PenLine, LineChart, HeartPulse, WifiOff } from 'lucide-react';
 import { useProfile } from './hooks/data';
 import { cx, useOnline } from './components/ui';
 import { todayKey, isDateKey } from './lib/date';
 import { requestPersistentStorage } from './lib/platform';
-import Onboarding from './pages/Onboarding';
 import Beranda from './pages/Beranda';
-import Catat from './pages/Catat';
-import Progres from './pages/Progres';
-import Kesehatan from './pages/Kesehatan';
-import Pengaturan from './pages/Pengaturan';
 import { getMeta } from './db/db';
 import { syncFromHealthConnect } from './integrations/healthConnect';
-import { QuickLog } from './components/QuickLog';
+
+// Heavy screens are split out so the app opens fast (charts only load on "Tren").
+const Catat = lazy(() => import('./pages/Catat'));
+const Progres = lazy(() => import('./pages/Progres'));
+const Kesehatan = lazy(() => import('./pages/Kesehatan'));
+const Pengaturan = lazy(() => import('./pages/Pengaturan'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 
 export type Tab = 'beranda' | 'catat' | 'progres' | 'kesehatan' | 'pengaturan';
 
@@ -35,13 +36,16 @@ export function go(r: Route) {
   if (window.location.hash !== h) window.location.hash = h;
 }
 
-const NAV: { tab: Tab; label: string; Icon: typeof Home }[] = [
-  { tab: 'beranda', label: 'Beranda', Icon: Home },
+const NAV: { tab: Tab; label: string; Icon: typeof Sun }[] = [
+  { tab: 'beranda', label: 'Hari ini', Icon: Sun },
   { tab: 'catat', label: 'Catat', Icon: PenLine },
-  { tab: 'progres', label: 'Progres', Icon: LineChart },
+  { tab: 'progres', label: 'Tren', Icon: LineChart },
   { tab: 'kesehatan', label: 'Kesehatan', Icon: HeartPulse },
-  { tab: 'pengaturan', label: 'Pengaturan', Icon: Settings },
 ];
+
+function Loading() {
+  return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted">Memuat…</div>;
+}
 
 export default function App() {
   const profile = useProfile();
@@ -61,7 +65,6 @@ export default function App() {
     void requestPersistentStorage();
   }, []);
 
-  // Auto-pull Health Connect data on launch when the user enabled it.
   useEffect(() => {
     if (!profile?.onboardingCompletedAt) return;
     (async () => {
@@ -69,11 +72,15 @@ export default function App() {
     })();
   }, [profile?.onboardingCompletedAt]);
 
-  if (profile === undefined) {
-    return <div className="flex min-h-dvh items-center justify-center text-muted">Memuat…</div>;
-  }
-  if (!profile || !profile.onboardingCompletedAt) return <Onboarding existing={profile} />;
+  if (profile === undefined) return <Loading />;
+  if (!profile || !profile.onboardingCompletedAt)
+    return (
+      <Suspense fallback={<Loading />}>
+        <Onboarding existing={profile} />
+      </Suspense>
+    );
 
+  const activeTab = route.tab === 'pengaturan' ? 'kesehatan' : route.tab;
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
       {!online && (
@@ -81,29 +88,29 @@ export default function App() {
           <WifiOff className="h-3.5 w-3.5" aria-hidden /> Offline — pencatatan tetap berjalan, fitur AI butuh internet.
         </div>
       )}
-      <main className="pt-safe flex-1 px-4 pb-32 pt-4">
-        {route.tab === 'beranda' && <Beranda profile={profile} />}
-        {route.tab === 'catat' && <Catat profile={profile} date={route.date ?? todayKey()} />}
-        {route.tab === 'progres' && <Progres profile={profile} />}
-        {route.tab === 'kesehatan' && <Kesehatan profile={profile} sub={route.sub} />}
-        {route.tab === 'pengaturan' && <Pengaturan profile={profile} sub={route.sub} />}
+      <main className="pt-safe flex-1 px-5 pb-28 pt-5">
+        <Suspense fallback={<Loading />}>
+          {route.tab === 'beranda' && <Beranda profile={profile} />}
+          {route.tab === 'catat' && <Catat profile={profile} date={route.date ?? todayKey()} />}
+          {route.tab === 'progres' && <Progres profile={profile} />}
+          {route.tab === 'kesehatan' && <Kesehatan profile={profile} sub={route.sub} />}
+          {route.tab === 'pengaturan' && <Pengaturan profile={profile} sub={route.sub} />}
+        </Suspense>
       </main>
-      {route.tab !== 'pengaturan' && <QuickLog profile={profile} />}
-      <nav aria-label="Navigasi utama" className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/85 backdrop-blur-xl">
-        <ul className="mx-auto grid max-w-lg grid-cols-5">
+      <nav aria-label="Navigasi utama" className="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg">
+        <ul className="mx-auto grid max-w-lg grid-cols-4">
           {NAV.map(({ tab, label, Icon }) => {
-            const active = route.tab === tab;
+            const active = activeTab === tab;
             return (
               <li key={tab}>
                 <a
                   href={`#/${tab}`}
                   aria-current={active ? 'page' : undefined}
-                  className={cx('flex min-h-16 flex-col items-center justify-center gap-1 text-[11px]', active ? 'font-semibold text-accent' : 'text-muted')}
+                  className={cx('flex min-h-16 flex-col items-center justify-center gap-1 text-xs', active ? 'font-semibold text-ink' : 'text-muted')}
                 >
-                  <span className={cx('flex h-8 w-14 items-center justify-center rounded-full transition-colors', active && 'bg-accent-soft')}>
-                    <Icon className="h-5 w-5" aria-hidden strokeWidth={active ? 2.4 : 1.8} />
-                  </span>
+                  <Icon className="h-[22px] w-[22px]" aria-hidden strokeWidth={active ? 2.2 : 1.7} />
                   {label}
+                  <span className={cx('h-1 w-1 rounded-full', active ? 'bg-m-kcal' : 'bg-transparent')} />
                 </a>
               </li>
             );

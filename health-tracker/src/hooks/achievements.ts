@@ -18,7 +18,7 @@ export function useAchievements(days: DailyEntry[] | undefined, profile: UserPro
     result.newly.forEach((id) => (next[id] = today));
     void setMeta('achievements', next);
     const names = result.newly.map((id) => ACHIEVEMENTS.find((a) => a.id === id)?.title).filter(Boolean);
-    toast(names.length === 1 ? `🏆 Pencapaian baru: ${names[0]}` : `🏆 ${names.length} pencapaian baru: ${names.slice(0, 2).join(', ')}${names.length > 2 ? '…' : ''}`);
+    toast(names.length === 1 ? `Pencapaian baru: ${names[0]}` : `${names.length} pencapaian baru, termasuk ${names[0]}`);
   }, [result, earned, today, toast]);
   return result?.list ?? null;
 }
