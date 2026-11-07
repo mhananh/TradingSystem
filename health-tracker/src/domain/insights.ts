@@ -7,6 +7,8 @@ export const MIN_GROUP = 5;
 
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 const r1 = (n: number | null) => (n == null ? null : Math.round(n * 10) / 10);
+/** Indonesian decimal comma. */
+const dec = (n: number, digits: number) => n.toFixed(digits).replace('.', ',');
 
 export function daysInRange(days: DailyEntry[], start: string, end: string) {
   return days.filter((d) => d.date >= start && d.date <= end);
@@ -98,15 +100,15 @@ export function trendInsight(days: DailyEntry[], today: string, currentWeight: n
   let text: string;
   let tone: InsightTone = 'neutral';
   if (kgPerWeek <= 0.05) {
-    text = `Tren 4 minggu terakhir relatif datar (${kgPerWeek.toFixed(2)} kg/minggu). Cek dulu kelengkapan catatan (minyak, minuman, camilan), tidur, dan langkah sebelum mengubah apa pun.`;
+    text = `Tren 4 minggu terakhir relatif datar (${dec(kgPerWeek, 2)} kg/minggu). Cek dulu kelengkapan catatan (minyak, minuman, camilan), tidur, dan langkah sebelum mengubah apa pun.`;
   } else if (pace === 'too_fast') {
-    text = `Tren turun ±${kgPerWeek.toFixed(2)} kg/minggu — lebih cepat dari 1,5% berat badan per minggu. Pertimbangkan menambah makan/protein agar otot terjaga, dan bicarakan dengan tenaga kesehatan bila disengaja.`;
+    text = `Tren turun ±${dec(kgPerWeek, 2)} kg/minggu — lebih cepat dari 1,5% berat badan per minggu. Pertimbangkan menambah makan/protein agar otot terjaga, dan bicarakan dengan tenaga kesehatan bila disengaja.`;
     tone = 'caution';
   } else if (pace === 'ambitious') {
-    text = `Tren turun ±${kgPerWeek.toFixed(2)} kg/minggu — termasuk cepat. Pastikan protein, tidur, dan energi tetap baik.`;
+    text = `Tren turun ±${dec(kgPerWeek, 2)} kg/minggu — termasuk cepat. Pastikan protein, tidur, dan energi tetap baik.`;
     tone = 'caution';
   } else {
-    text = `Tren turun ±${kgPerWeek.toFixed(2)} kg/minggu — dalam rentang yang umumnya dianggap berkelanjutan.`;
+    text = `Tren turun ±${dec(kgPerWeek, 2)} kg/minggu — dalam rentang yang umumnya dianggap berkelanjutan.`;
     tone = 'positive';
   }
   return { id: 'trend', question: q, status: 'ready', tone, text, pace, kgPerWeek, detail: 'Dihitung dari garis tren penimbangan 28 hari terakhir, bukan dari satu angka harian.' };
@@ -158,7 +160,7 @@ export function sleepinessInsight(days: DailyEntry[], today: string): Insight {
     question: q,
     status: 'ready',
     tone: a < b - 0.3 ? 'positive' : 'neutral',
-    text: `Kantuk setelah makan siang rata-rata ${a.toFixed(1)}/5 (minggu lalu ${b.toFixed(1)}/5).`,
+    text: `Kantuk setelah makan siang rata-rata ${dec(a, 1)}/5 (minggu lalu ${dec(b, 1)}/5).`,
   };
 }
 
@@ -245,7 +247,7 @@ export function sleepVsSleepinessInsight(days: DailyEntry[], today: string): Ins
     question: q,
     status: 'ready',
     tone: 'neutral',
-    text: `Kantuk siang rata-rata ${a.toFixed(1)}/5 setelah tidur <6 jam vs ${b.toFixed(1)}/5 setelah tidur ≥7 jam.`,
+    text: `Kantuk siang rata-rata ${dec(a, 1)}/5 setelah tidur <6 jam vs ${dec(b, 1)}/5 setelah tidur ≥7 jam.`,
     detail:
       a - b < 0.5
         ? 'Bila kantuk tetap berat meski tidur cukup, itu alasan baik untuk membahas kualitas tidur dengan tenaga kesehatan.'

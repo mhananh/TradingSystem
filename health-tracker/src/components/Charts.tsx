@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { daysBetween, formatShort } from '../lib/date';
 import { fmt0, fmt1 } from '../lib/format';
 
@@ -35,7 +35,7 @@ export function WeightChart({ points, goal, projection, height = 240 }: { points
           <Tooltip labelFormatter={(v) => fromNum(Number(v))} formatter={(v, name) => [`${fmt1(Number(v))} kg`, String(name)]} />
           <Legend wrapperStyle={{ fontSize: 11 }} />
           {goal && <ReferenceLine y={goal} stroke={C.accent} strokeDasharray="4 4" label={{ value: `Target ${fmt0(goal)} kg`, fontSize: 10, fill: C.accent, position: 'insideBottomRight' }} />}
-          <Scatter name="Timbangan harian" dataKey="weight" fill={C.muted} shape="circle" />
+          <Line name="Timbangan harian" dataKey="weight" stroke="none" legendType="circle" dot={{ r: 3, fill: C.muted, stroke: C.muted }} activeDot={{ r: 5 }} connectNulls={false} isAnimationActive={false} />
           <Line name="Rata-rata 7 hari" dataKey="avg" stroke={C.accent} strokeWidth={2.5} dot={false} connectNulls={false} isAnimationActive={false} />
           {projection && <Line name="Skenario optimis" dataKey="opt" stroke={C.info} strokeDasharray="2 4" dot={false} isAnimationActive={false} />}
           {projection && <Line name="Skenario tengah" dataKey="mid" stroke={C.ink} strokeDasharray="6 4" dot={false} isAnimationActive={false} />}
